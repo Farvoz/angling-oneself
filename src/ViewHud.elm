@@ -15,7 +15,11 @@ import Model exposing (Msg(..))
 viewHudStats : GameState -> Html Msg
 viewHudStats gameState =
     div
-        [ css [ marginBottom (rem 0.5), fontSize (rem 0.9) ] ]
+        [ css 
+            [ position fixed
+            , marginBottom (rem 0.5)
+            , fontSize (rem 0.9) ] 
+            ]
         [ text
             ("Натяжение: "
                 ++ String.fromInt gameState.lineTension
@@ -42,7 +46,6 @@ viewHudActions gameState =
                 , displayFlex
                 , justifyContent spaceBetween
                 , alignItems center
-                , padding2 zero (rem 1)
                 ]
             ]
             [ button
@@ -52,28 +55,31 @@ viewHudActions gameState =
                 [ text "Остаться здесь" ]
             , button
                 [ onClick (GameMsg SearchNewPlace)
-                , css [ btnStyle ]
+                , css [ btnStyle ] 
                 ]
-                [ text "Поискать новое место" ]
+                [ text "Новое место" ]
             ]
 
     else
         div
             [ css
                 [ displayFlex
-                , property "gap" "0.5rem"
                 , position fixed
-                , bottom zero
                 , left zero
+                , bottom zero
                 , width (pct 100)
-                , height (pct 100)
-                , flexWrap wrap
+                , height (rem 11)
+                , justifyContent center
                 ]
             ]
             [ if List.length gameState.openTerrainCards < 5 && not (List.isEmpty gameState.conductingDeck) then
                 button
                     [ onClick (GameMsg Pull)
-                    , css [ btnStyle ]
+                    , css 
+                        [ btnStyle 
+                        , width (rem 3)
+                        , height (rem 3)
+                        ]
                     ]
                     [ text "🎣" ]
 

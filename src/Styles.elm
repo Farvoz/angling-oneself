@@ -6,9 +6,9 @@ import Html.Styled
 import ThemeTokens exposing (..)
 
 -- Constants
-cardSize : Px
+cardSize : Rem
 cardSize =
-    px 48
+    rem 3
 
 cardWidth : Style
 cardWidth =
@@ -33,8 +33,7 @@ cardSlotStyle =
     batch
         [ cardWidth
         , cardHeight
-        , border3 (px 2) dashed borderMuted
-        , borderRadius (px 6)
+        , borderRadius borderRadiusDefault
         , flexCenter
         , backgroundColor surfaceMuted
         ]
@@ -44,13 +43,11 @@ cardTerrainStyle =
     batch
         [ cardWidth
         , cardHeight
-        , border3 (px 2) solid borderDefault
-        , borderRadius (px 6)
+        , borderRadius borderRadiusDefault
         , position relative
         , flexCenter
         , backgroundColor surfaceDefault
         , color textPrimary
-        , fontSize (rem 1.1)
         , fontWeight bold
         ]
 
@@ -59,12 +56,10 @@ cardBaitStyle =
     batch
         [ cardWidth
         , cardHeight
-        , border3 (px 2) solid borderDefault
-        , borderRadius (px 6)
+        , borderRadius borderRadiusDefault
         , flexCenter
         , backgroundColor surfaceAccent
         , color textOnAccent
-        , fontSize (rem 0.75)
         ]
 
 notchStyle : Style
@@ -76,7 +71,6 @@ notchStyle =
         , backgroundColor borderDefault
         , borderRadius (pct 50)
         , flexCenter
-        , fontSize (rem 0.45)
         , color textOnDark
         ]
 
@@ -85,10 +79,12 @@ btnStyle : Style
 btnStyle =
     batch
         [ minHeight (px 44)
-        , fontSize (rem 1)
+        , padding2 (rem 1) (rem 1)
         , cursor pointer
-        , backgroundColor surfaceMuted
+        , backgroundColor surfaceDefault
         , color textPrimary
+        , borderStyle none
+        , borderRadius borderRadiusDefault
         ]
 
 -- Root layout

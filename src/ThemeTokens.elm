@@ -15,7 +15,7 @@ surfacePage =
 surfaceDefault : Color
 surfaceDefault =
     hex "d8e6e8"
-
+    
 surfaceMuted : Color
 surfaceMuted =
     hex "b8c9c4"
@@ -60,3 +60,7 @@ semanticError =
 textOnDark : Color
 textOnDark =
     hex "ffffff"
+
+-- Размеры
+borderRadiusDefault : Px
+borderRadiusDefault = px 6
