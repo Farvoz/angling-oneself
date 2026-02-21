@@ -1,4 +1,7 @@
-module GameModel exposing (ConductingCard(..), GameMsg(..), GamePhase(..), GameState, NotchPosition(..), TechniqueCard, checkBaitVictory, drawCard, initialConductingDeck, initialGameState, initialTechniquesDeck, shuffleAndPrepend, shuffleList, updateGame)
+module GameModel exposing (
+    ConductingCard(..), 
+    GameMsg(..), GamePhase(..), GameState, Notch, TechniqueCard, checkBaitVictory, drawCard, initialConductingDeck, initialGameState, initialTechniquesDeck, shuffleAndPrepend, shuffleList, updateGame
+    , TensionMode(..))
 
 import Array
 import Random
@@ -6,19 +9,24 @@ import Random
 
 -- Типы для колоды проводки
 
-type NotchPosition
-    = TopLeft
-    | TopRight
-    | MiddleLeft
-    | MiddleRight
-    | BottomLeft
-    | BottomRight
+-- (Позиция, Сила)
+type alias Notch
+    = (Int, Int)
 
+type TensionMode
+    = TensionSet
+    | TensionChange
+
+type alias Tension = 
+    { mode : TensionMode
+    , value : Int
+    }
 
 type ConductingCard
-    = TerrainCard { tension : Int, notchPosition : NotchPosition, notchStrength : Int }
-    | BaitCard { notches : List ( NotchPosition, Int ) }
+    = TerrainCard { tension : Tension, notch : Notch }
+    | BaitCard { notches : List Notch }
 
+maxTension : number
 maxTension = 3
 
 -- Типы для колоды приёмов
@@ -86,7 +94,11 @@ updateGame msg gameState =
                                         gameState.openTerrainCards ++ [ card ]
 
                                     newTension =
-                                        gameState.lineTension + tension
+                                        case tension.mode of
+                                            TensionSet ->
+                                                tension.value
+                                            TensionChange ->
+                                                gameState.lineTension + tension.value
 
                                     isLost = 
                                         newTension > maxTension
@@ -128,12 +140,14 @@ updateGame msg gameState =
                 | conductingDeck = shuffledCards
                 , openTerrainCards = []
                 , seed = seed1
+                , timeElapsed = gameState.timeElapsed + 1
             }
 
         SearchNewPlace ->
             { gameState
                 | discardedTerrainCards = gameState.discardedTerrainCards ++ gameState.openTerrainCards
                 , openTerrainCards = []
+                , timeElapsed = gameState.timeElapsed + List.length gameState.openTerrainCards
             }
 
         ShuffledStayHere shuffledCards ->
@@ -147,16 +161,16 @@ updateGame msg gameState =
 
 initialConductingDeck : List ConductingCard
 initialConductingDeck =
-    [ TerrainCard { tension = 1, notchPosition = TopRight, notchStrength = 1 }
-    , TerrainCard { tension = 1, notchPosition = MiddleRight, notchStrength = 1 }
-    , TerrainCard { tension = 1, notchPosition = BottomRight, notchStrength = 1 }
-    , TerrainCard { tension = -1, notchPosition = TopRight, notchStrength = 1 }
-    , TerrainCard { tension = -1, notchPosition = MiddleRight, notchStrength = 1 }
-    , TerrainCard { tension = -1, notchPosition = BottomRight, notchStrength = 1 }
-    , TerrainCard { tension = 1, notchPosition = TopRight, notchStrength = 1 }
-    , TerrainCard { tension = 1, notchPosition = MiddleRight, notchStrength = 1 }
-    , TerrainCard { tension = 2, notchPosition = TopRight, notchStrength = 1 }
-    , BaitCard { notches = [ ( TopLeft, 1 ), ( MiddleLeft, 1 ) ] }
+    [ TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (1, 1) }
+    , TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (2, 1) }
+    , TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (3, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = -1 }, notch = (1, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = -1 }, notch = (2, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = -1 }, notch = (3, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = 1 }, notch = (1, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = 1 }, notch = (3, 1)}
+    , TerrainCard { tension = { mode = TensionChange, value = 2 }, notch = (1, 1)}
+    , BaitCard { notches = [ ( 1, 1 ), ( 2, 1 ) ] }
     ]
 
 
@@ -235,14 +249,19 @@ checkBaitVictory lineTension openTerrainCards baitCard =
     case ( baitCard, List.reverse openTerrainCards ) of
         ( BaitCard { notches }, lastCard :: _ ) ->
             case lastCard of
-                TerrainCard { notchPosition, notchStrength } ->
+                TerrainCard { notch } ->
                     -- Проверить совпадение уровня натяжения и засечки карты местности
                     -- Также проверим, что в карте наживки есть засечка в этой позиции
                     let
-                        hasMatchingPosition =
-                            List.any (\( pos, _ ) -> pos == notchPosition) notches
+                        (terrainPos, terrainStr) = notch
+                        matchedNotches =
+                            List.filter (\( pos, _ ) -> pos == terrainPos) notches
                     in
-                    hasMatchingPosition && lineTension == notchStrength
+                        case List.head matchedNotches of
+                            Just (baitPos, baitStr) ->
+                                baitPos == terrainPos && lineTension == (terrainStr + baitStr)
+                            Nothing ->
+                                False
 
                 BaitCard _ ->
                     False

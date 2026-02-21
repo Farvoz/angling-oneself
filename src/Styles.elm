@@ -28,36 +28,37 @@ flexCenter =
     batch [ displayFlex, alignItems center, justifyContent center ]
 
 -- Card styles
-cardSlotStyle : Style
-cardSlotStyle =
-    batch
-        [ cardWidth
-        , cardHeight
-        , borderRadius borderRadiusDefault
-        , flexCenter
-        , backgroundColor surfaceMuted
-        ]
-
-cardTerrainStyle : Style
-cardTerrainStyle =
-    batch
+cardStyle : Style
+cardStyle = 
+    batch 
         [ cardWidth
         , cardHeight
         , borderRadius borderRadiusDefault
         , position relative
         , flexCenter
+        , fontWeight bold
+        ]
+
+cardSlotStyle : Style
+cardSlotStyle =
+    batch
+        [ cardStyle
+        , backgroundColor surfaceMuted
+        ]
+
+
+cardTerrainStyle : Style
+cardTerrainStyle =
+    batch 
+        [ cardStyle
         , backgroundColor surfaceDefault
         , color textPrimary
-        , fontWeight bold
         ]
 
 cardBaitStyle : Style
 cardBaitStyle =
     batch
-        [ cardWidth
-        , cardHeight
-        , borderRadius borderRadiusDefault
-        , flexCenter
+        [ cardStyle
         , backgroundColor surfaceAccent
         , color textOnAccent
         ]

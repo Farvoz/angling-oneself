@@ -1,16 +1,12 @@
 module ViewGameElements exposing (..)
 
-import GameModel exposing (ConductingCard(..), NotchPosition(..))
+import GameModel exposing (ConductingCard(..), Notch, TensionMode(..))
 import Html.Styled exposing (Html, div, text)
 import Html.Styled.Attributes exposing (css)
 import Model exposing (Msg)
 import Styles exposing (cardBaitStyle, cardSlotStyle, cardTerrainStyle, notchStyle)
-import Css exposing (displayFlex, flexDirection, alignItems, property, flexShrink, num, center)
-import Css exposing (column, top, left, right, bottom, pct, transform, translateY, px)
-import Css exposing (Style)
-import Css exposing (flex)
-import Css exposing (int)
-import Css exposing (justifyContent)
+import Css exposing (..)
+import Char exposing (isUpper)
 
 viewOpenTerrainCards : List ConductingCard -> Html Msg
 viewOpenTerrainCards cards =
@@ -41,46 +37,54 @@ viewCardSlot maybeCard =
 viewTerrainCard : ConductingCard -> Html Msg
 viewTerrainCard card =
     case card of
-        TerrainCard { tension, notchPosition, notchStrength } ->
+        TerrainCard { tension, notch } ->
             div
                 [ css [ cardTerrainStyle ] ]
-                [ text (String.fromInt tension)
-                , viewNotch notchPosition notchStrength
+                [ case tension.mode of
+                    TensionSet ->
+                        text ("=" ++ (String.fromInt tension.value))
+                    TensionChange ->
+                        text (String.fromInt tension.value)
+                , viewNotch notch False
                 ]
 
-        BaitCard _ ->
+        BaitCard { notches } ->
             div
                 [ css [ cardBaitStyle ] ]
-                [ text "⚜️" ]
+                <| text "⚜️" :: List.map (\notch -> viewNotch notch True) notches 
 
 
-notchPositionStyles : NotchPosition -> List Style
-notchPositionStyles position =
-    case position of
-        TopLeft ->
-            [ top (px 2), left (px 2) ]
+notchPositionStyles : Notch -> Bool -> List Style
+notchPositionStyles (pos, _) isUpper =
+    let
+        align = 
+            if isUpper then
+                top
+            else 
+                bottom
+    in
+        case pos of
+            1 ->
+                [ align (rem 0.25), left (px 2) ]
 
-        TopRight ->
-            [ top (px 2), right (px 2) ]
+            2 ->
+                [ align (rem 0.25), left (pct 50), transform (translateX (pct -50)) ]
 
-        MiddleLeft ->
-            [ top (pct 50), left (px 2), transform (translateY (pct -50)) ]
+            3 ->
+                [ align (rem 0.25), right (px 2) ]
 
-        MiddleRight ->
-            [ top (pct 50), right (px 2), transform (translateY (pct -50)) ]
-
-        BottomLeft ->
-            [ bottom (px 2), left (px 2) ]
-
-        BottomRight ->
-            [ bottom (px 2), right (px 2) ]
+            _ ->
+                []
 
 
-viewNotch : NotchPosition -> Int -> Html Msg
-viewNotch position strength =
-    div
-        [ css (notchStyle :: notchPositionStyles position) ]
-        [ text (String.fromInt strength) ]
+viewNotch : Notch -> Bool -> Html Msg
+viewNotch notch isUpper =
+    let
+        (_, strength) = notch
+    in
+        div
+            [ css (notchStyle :: notchPositionStyles notch isUpper) ]
+            [ text (String.fromInt strength) ]
 
 
 -- Layer 1: Game board (cards only)
