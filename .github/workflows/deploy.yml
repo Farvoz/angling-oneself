@@ -30,7 +30,7 @@ jobs:
           elm-version: "0.19.1"
 
       - name: Build
-        run: elm make src/Main.elm
+        run: elm make src/Main.elm --output=public/elm.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -38,7 +38,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: "."
+          path: "public"
 
       - name: Deploy to GitHub Pages
         id: deployment

@@ -32,7 +32,8 @@ view model =
                                 ]
                             , button
                                 [ onClick Restart
-                                , style "padding" "0.5rem 1rem"
+                                , style "padding" "0.75rem 1.25rem"
+                                , style "min-height" "44px"
                                 , style "font-size" "1rem"
                                 , style "cursor" "pointer"
                                 ]
@@ -55,7 +56,8 @@ view model =
                                 ]
                             , button
                                 [ onClick Restart
-                                , style "padding" "0.5rem 1rem"
+                                , style "padding" "0.75rem 1.25rem"
+                                , style "min-height" "44px"
                                 , style "font-size" "1rem"
                                 , style "cursor" "pointer"
                                 ]
@@ -83,7 +85,8 @@ view model =
                                 [ if List.length gameState.openTerrainCards < 5 && not (List.isEmpty gameState.conductingDeck) then
                                     button
                                         [ onClick Pull
-                                        , style "padding" "0.5rem 1rem"
+                                        , style "padding" "0.75rem 1.25rem"
+                                        , style "min-height" "44px"
                                         , style "font-size" "1rem"
                                         , style "cursor" "pointer"
                                         , style "margin-right" "0.5rem"
@@ -95,7 +98,8 @@ view model =
                                     div []
                                         [ button
                                             [ onClick StayHere
-                                            , style "padding" "0.5rem 1rem"
+                                            , style "padding" "0.75rem 1.25rem"
+                                            , style "min-height" "44px"
                                             , style "font-size" "1rem"
                                             , style "cursor" "pointer"
                                             , style "margin-right" "0.5rem"
@@ -103,7 +107,8 @@ view model =
                                             [ text "Остаться здесь" ]
                                         , button
                                             [ onClick SearchNewPlace
-                                            , style "padding" "0.5rem 1rem"
+                                            , style "padding" "0.75rem 1.25rem"
+                                            , style "min-height" "44px"
                                             , style "font-size" "1rem"
                                             , style "cursor" "pointer"
                                             ]
@@ -132,8 +137,8 @@ viewTerrainCard card =
     case card of
         TerrainCard { tension, notchPosition, notchStrength } ->
             div
-                [ style "width" "100px"
-                , style "height" "140px"
+                [ style "width" "min(22vw, 100px)"
+                , style "height" "min(31vw, 140px)"
                 , style "border" "2px solid #333"
                 , style "border-radius" "8px"
                 , style "position" "relative"
@@ -150,8 +155,8 @@ viewTerrainCard card =
 
         BaitCard _ ->
             div
-                [ style "width" "100px"
-                , style "height" "140px"
+                [ style "width" "min(22vw, 100px)"
+                , style "height" "min(31vw, 140px)"
                 , style "border" "2px solid #333"
                 , style "border-radius" "8px"
                 , style "display" "flex"
