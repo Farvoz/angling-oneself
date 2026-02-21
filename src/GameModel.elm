@@ -105,7 +105,7 @@ updateGame msg gameState =
                                 in
                                 { gameState
                                     | conductingDeck = newDeck
-                                    , discardedTerrainCards = gameState.discardedTerrainCards ++ [ card ]
+                                    , openTerrainCards = gameState.openTerrainCards ++ [ card ]
                                     , phase = newPhase
                                 }
 
