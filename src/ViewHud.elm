@@ -42,6 +42,7 @@ viewHudActions gameState =
                 , top (pct 50)
                 , left zero
                 , right zero
+                , padding2 zero (rem 0.75)
                 , transform (translateY (pct -50))
                 , displayFlex
                 , justifyContent spaceBetween

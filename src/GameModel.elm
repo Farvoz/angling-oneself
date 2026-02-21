@@ -19,6 +19,7 @@ type ConductingCard
     = TerrainCard { tension : Int, notchPosition : NotchPosition, notchStrength : Int }
     | BaitCard { notches : List ( NotchPosition, Int ) }
 
+maxTension = 3
 
 -- Типы для колоды приёмов
 
@@ -86,11 +87,19 @@ updateGame msg gameState =
 
                                     newTension =
                                         gameState.lineTension + tension
+
+                                    isLost = 
+                                        newTension > maxTension
                                 in
                                 { gameState
                                     | conductingDeck = newDeck
                                     , openTerrainCards = newOpenCards
                                     , lineTension = newTension
+                                    , phase = 
+                                        if isLost then
+                                            Lost
+                                        else
+                                            Playing
                                 }
 
                             BaitCard _ ->

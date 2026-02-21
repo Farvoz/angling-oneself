@@ -51,7 +51,7 @@ viewTerrainCard card =
         BaitCard _ ->
             div
                 [ css [ cardBaitStyle ] ]
-                [ text "Наживка" ]
+                [ text "⚜️" ]
 
 
 notchPositionStyles : NotchPosition -> List Style

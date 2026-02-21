@@ -85,7 +85,7 @@ viewGame gameState =
                 ]
 
         Lost ->
-            div []
+            div [ css [ flexColumn, alignItems center ] ]
                 [ div
                     [ css
                         [ fontSize (rem 2)
