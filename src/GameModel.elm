@@ -49,6 +49,7 @@ type alias GameState =
     , discardedTerrainCards : List ConductingCard
     , openTechniqueCards : List TechniqueCard
     , phase : GamePhase
+    , seed : Random.Seed
     }
 
 
@@ -110,29 +111,21 @@ updateGame msg gameState =
                                 }
 
         StayHere ->
-            if List.length gameState.openTerrainCards == 5 then
-                let
-                    seed =
-                        Random.initialSeed (gameState.timeElapsed + List.length gameState.openTerrainCards)
-
-                    ( shuffledCards, _ ) =
-                        shuffleAndPrepend seed gameState.openTerrainCards gameState.conductingDeck
-                in
-                { gameState
-                    | conductingDeck = shuffledCards
-                    , openTerrainCards = []
-                }
-            else
-                gameState
+            let
+                ( shuffledCards, seed1 ) =
+                    shuffleAndPrepend gameState.seed gameState.openTerrainCards gameState.conductingDeck
+            in
+            { gameState
+                | conductingDeck = shuffledCards
+                , openTerrainCards = []
+                , seed = seed1
+            }
 
         SearchNewPlace ->
-            if List.length gameState.openTerrainCards == 5 then
-                { gameState
-                    | discardedTerrainCards = gameState.discardedTerrainCards ++ gameState.openTerrainCards
-                    , openTerrainCards = []
-                }
-            else
-                gameState
+            { gameState
+                | discardedTerrainCards = gameState.discardedTerrainCards ++ gameState.openTerrainCards
+                , openTerrainCards = []
+            }
 
         ShuffledStayHere shuffledCards ->
             { gameState
@@ -268,16 +261,17 @@ initialGameState seed =
         ( shuffledConducting, seed1 ) =
             shuffleList seed initialConductingDeck
 
-        ( shuffledTechniques, _ ) =
+        ( shuffledTechniques, seed2 ) =
             shuffleList seed1 initialTechniquesDeck
     in
-    { lineTension = 0
-    , caughtFish = 0
-    , timeElapsed = 0
-    , conductingDeck = shuffledConducting
-    , techniquesDeck = shuffledTechniques
-    , openTerrainCards = []
-    , discardedTerrainCards = []
-    , openTechniqueCards = []
-    , phase = Playing
-    }
+        { lineTension = 0
+        , caughtFish = 0
+        , timeElapsed = 0
+        , conductingDeck = shuffledConducting
+        , techniquesDeck = shuffledTechniques
+        , openTerrainCards = []
+        , discardedTerrainCards = []
+        , openTechniqueCards = []
+        , phase = Playing
+        , seed = seed2
+        }
