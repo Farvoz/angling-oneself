@@ -1,4 +1,4 @@
-module Game exposing (ConductingCard(..), GamePhase(..), GameState, NotchPosition(..), TechniqueCard, checkBaitVictory, drawCard, initialConductingDeck, initialGameState, initialTechniquesDeck, shuffleAndPrepend, shuffleList)
+module GameModel exposing (ConductingCard(..), GameMsg(..), GamePhase(..), GameState, NotchPosition(..), TechniqueCard, checkBaitVictory, drawCard, initialConductingDeck, initialGameState, initialTechniquesDeck, shuffleAndPrepend, shuffleList, updateGame)
 
 import Array
 import Random
@@ -36,6 +36,7 @@ type GamePhase
     | Lost
 
 
+
 -- Игровое состояние
 
 type alias GameState =
@@ -49,6 +50,95 @@ type alias GameState =
     , openTechniqueCards : List TechniqueCard
     , phase : GamePhase
     }
+
+
+-- Игровые сообщения
+
+type GameMsg
+    = Pull
+    | StayHere
+    | SearchNewPlace
+    | ShuffledStayHere (List ConductingCard)
+
+
+updateGame : GameMsg -> GameState -> GameState
+updateGame msg gameState =
+    case msg of
+        Pull ->
+            if gameState.phase /= Playing then
+                gameState
+            else
+                let
+                    ( newDeck, maybeCard ) =
+                        drawCard gameState.conductingDeck
+                in
+                case maybeCard of
+                    Nothing ->
+                        { gameState | phase = Lost }
+
+                    Just card ->
+                        case card of
+                            TerrainCard { tension } ->
+                                let
+                                    newOpenCards =
+                                        gameState.openTerrainCards ++ [ card ]
+
+                                    newTension =
+                                        gameState.lineTension + tension
+                                in
+                                { gameState
+                                    | conductingDeck = newDeck
+                                    , openTerrainCards = newOpenCards
+                                    , lineTension = newTension
+                                }
+
+                            BaitCard _ ->
+                                let
+                                    isVictory =
+                                        checkBaitVictory gameState.lineTension gameState.openTerrainCards card
+
+                                    newPhase =
+                                        if isVictory then
+                                            Won
+                                        else
+                                            Playing
+                                in
+                                { gameState
+                                    | conductingDeck = newDeck
+                                    , discardedTerrainCards = gameState.discardedTerrainCards ++ [ card ]
+                                    , phase = newPhase
+                                }
+
+        StayHere ->
+            if List.length gameState.openTerrainCards == 5 then
+                let
+                    seed =
+                        Random.initialSeed (gameState.timeElapsed + List.length gameState.openTerrainCards)
+
+                    ( shuffledCards, _ ) =
+                        shuffleAndPrepend seed gameState.openTerrainCards gameState.conductingDeck
+                in
+                { gameState
+                    | conductingDeck = shuffledCards
+                    , openTerrainCards = []
+                }
+            else
+                gameState
+
+        SearchNewPlace ->
+            if List.length gameState.openTerrainCards == 5 then
+                { gameState
+                    | discardedTerrainCards = gameState.discardedTerrainCards ++ gameState.openTerrainCards
+                    , openTerrainCards = []
+                }
+            else
+                gameState
+
+        ShuffledStayHere shuffledCards ->
+            { gameState
+                | conductingDeck = shuffledCards ++ gameState.conductingDeck
+                , openTerrainCards = []
+            }
 
 
 -- Начальная колода проводки
