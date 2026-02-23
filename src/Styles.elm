@@ -55,8 +55,8 @@ cardTerrainStyle =
         , color textPrimary
         ]
 
-cardBaitStyle : Style
-cardBaitStyle =
+cardFishOutlineStyle : Style
+cardFishOutlineStyle =
     batch
         [ cardStyle
         , backgroundColor surfaceAccent
@@ -67,8 +67,8 @@ notchStyle : Style
 notchStyle =
     batch
         [ position absolute
-        , width (px 6)
-        , height (px 6)
+        , width (px 10)
+        , height (px 10)
         , backgroundColor borderDefault
         , borderRadius (pct 50)
         , flexCenter

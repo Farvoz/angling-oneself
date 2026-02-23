@@ -1,7 +1,18 @@
-module GameModel exposing (
-    ConductingCard(..), 
-    GameMsg(..), GamePhase(..), GameState, Notch, TechniqueCard, checkBaitVictory, drawCard, initialConductingDeck, initialGameState, initialTechniquesDeck, shuffleAndPrepend, shuffleList, updateGame
-    , TensionMode(..))
+module GameModel exposing
+    ( ConductingCard(..)
+    , GameMsg(..)
+    , GamePhase(..)
+    , GameState
+    , Notch
+    , PhaseChange
+    , TechniqueCard(..)
+    , TensionMode(..)
+    , checkBaitVictory
+    , drawCard
+    , shuffleAndPrepend
+    , shuffleList
+    , updateGame
+    )
 
 import Array
 import Random
@@ -24,10 +35,7 @@ type alias Tension =
 
 type ConductingCard
     = TerrainCard { tension : Tension, notch : Notch }
-    | BaitCard { notches : List Notch }
-
-maxTension : number
-maxTension = 3
+    | FishOutlineCard { notches : List Notch }
 
 -- Типы для колоды приёмов
 
@@ -40,9 +48,40 @@ type TechniqueCard
 -- Фазы игры
 
 type GamePhase
-    = Playing
-    | Won
-    | Lost
+    = ReadyToCast   -- Готов к забросу
+    | Conducting    -- Проводка
+    | Fighting      -- Вываживание
+
+
+type alias PhaseChange =
+    { from : GamePhase
+    , to : GamePhase
+    , reason : String
+    }
+
+
+maxPhaseChanges : Int
+maxPhaseChanges =
+    8
+
+
+transitionPhase : GamePhase -> String -> GameState -> GameState
+transitionPhase toPhase reason gameState =
+    if gameState.phase == toPhase then
+        gameState
+
+    else
+        let
+            entry =
+                { from = gameState.phase
+                , to = toPhase
+                , reason = reason
+                }
+        in
+        { gameState
+            | phase = toPhase
+            , phaseChanges = List.take maxPhaseChanges (entry :: gameState.phaseChanges)
+        }
 
 
 
@@ -50,6 +89,7 @@ type GamePhase
 
 type alias GameState =
     { lineTension : Int
+    , distance : Int
     , caughtFish : Int
     , timeElapsed : Int
     , conductingDeck : List ConductingCard
@@ -58,7 +98,9 @@ type alias GameState =
     , discardedTerrainCards : List ConductingCard
     , openTechniqueCards : List TechniqueCard
     , phase : GamePhase
+    , phaseChanges : List PhaseChange
     , seed : Random.Seed
+    , selectedDistance : Maybe Int
     }
 
 
@@ -66,16 +108,66 @@ type alias GameState =
 
 type GameMsg
     = Pull
-    | StayHere
+    | SelectDistance Int
+    | Cast
     | SearchNewPlace
-    | ShuffledStayHere (List ConductingCard)
+
+
+resetForCast : GameState -> GameState
+resetForCast gameState =
+    let
+        ( shuffledCards, seed1 ) =
+            shuffleAndPrepend gameState.seed gameState.openTerrainCards gameState.conductingDeck
+    in
+    { gameState
+        | conductingDeck = shuffledCards
+        , openTerrainCards = []
+        , lineTension = 0
+        , seed = seed1
+    }
+
+
+toReadyToCast : String -> GameState -> GameState
+toReadyToCast reason gameState =
+    gameState
+        |> transitionPhase ReadyToCast reason
+
+
+updateTenstion : ConductingCard -> Int -> Int
+updateTenstion card currentTension =
+    case card of
+        TerrainCard { tension } ->
+            case tension.mode of
+                TensionSet ->
+                    tension.value
+                TensionChange ->
+                    max 0 (currentTension + tension.value)
+        FishOutlineCard _ ->
+            currentTension
+
+
+moveTopToBottom : Int -> List a -> List a
+moveTopToBottom n deck =
+    let
+        top =
+            List.take n deck
+        rest =
+            List.drop n deck
+    in
+    rest ++ top
 
 
 updateGame : GameMsg -> GameState -> GameState
 updateGame msg gameState =
     case msg of
+        SelectDistance n ->
+            if gameState.phase == ReadyToCast && n >= 2 && n <= 10 then
+                { gameState | selectedDistance = Just n }
+            else
+                gameState
+
         Pull ->
-            if gameState.phase /= Playing then
+            if gameState.phase /= Conducting && gameState.phase /= Fighting then
                 gameState
             else
                 let
@@ -84,110 +176,108 @@ updateGame msg gameState =
                 in
                 case maybeCard of
                     Nothing ->
-                        { gameState | phase = Lost }
+                        toReadyToCast "колода закончилась" gameState
 
                     Just card ->
-                        case card of
-                            TerrainCard { tension } ->
-                                let
-                                    newOpenCards =
-                                        gameState.openTerrainCards ++ [ card ]
+                        let
+                            newTension =
+                                updateTenstion card gameState.lineTension
 
-                                    newTension =
-                                        case tension.mode of
-                                            TensionSet ->
-                                                tension.value
-                                            TensionChange ->
-                                                gameState.lineTension + tension.value
+                            newOpenCards =
+                                gameState.openTerrainCards ++ [ card ]
+                            newDistance =
+                                gameState.distance - newTension
 
-                                    isLost = 
-                                        newTension > maxTension
-                                in
+                            baseState =
                                 { gameState
                                     | conductingDeck = newDeck
                                     , openTerrainCards = newOpenCards
                                     , lineTension = newTension
-                                    , phase = 
-                                        if isLost then
-                                            Lost
-                                        else
-                                            Playing
                                 }
+                        in
+                        if newTension <= 0 then
+                            if gameState.phase == Fighting then
+                                toReadyToCast "натяжение упало до 0" baseState
+                            else 
+                                { baseState | distance = newDistance }
+                        else
+                            case gameState.phase of
+                                Conducting ->
+                                    case card of
+                                        FishOutlineCard _ ->
+                                            if checkBaitVictory newTension gameState.openTerrainCards card then
+                                                baseState
+                                                    |> (\s -> { s | distance = newDistance })
+                                                    |> transitionPhase Fighting "клюнуло на наживку"
+                                            else if newDistance <= 0 then
+                                                { baseState
+                                                    | distance = newDistance
+                                                    , timeElapsed = gameState.timeElapsed + 1
+                                                }
+                                                    |> toReadyToCast "проводка завершена: дистанция исчерпана"
+                                            else
+                                                { baseState | distance = newDistance }
 
-                            BaitCard _ ->
-                                let
-                                    isVictory =
-                                        checkBaitVictory gameState.lineTension gameState.openTerrainCards card
+                                        TerrainCard _ ->
+                                            if newDistance <= 0 then
+                                                { baseState
+                                                    | distance = newDistance
+                                                    , timeElapsed = gameState.timeElapsed + 1
+                                                }
+                                                    |> toReadyToCast "проводка завершена: дистанция исчерпана"
+                                            else
+                                                { baseState | distance = newDistance }
 
-                                    newPhase =
-                                        if isVictory then
-                                            Won
-                                        else
-                                            Playing
-                                in
-                                { gameState
-                                    | conductingDeck = newDeck
-                                    , openTerrainCards = gameState.openTerrainCards ++ [ card ]
-                                    , phase = newPhase
-                                }
+                                Fighting ->
+                                    if newDistance <= 0 then
+                                        { baseState
+                                            | distance = newDistance
+                                            , caughtFish = gameState.caughtFish + 1
+                                            , timeElapsed = gameState.timeElapsed + 1
+                                        }
+                                            |> toReadyToCast "рыба вытащена"
+                                    else
+                                        { baseState | distance = newDistance }
 
-        StayHere ->
-            let
-                ( shuffledCards, seed1 ) =
-                    shuffleAndPrepend gameState.seed gameState.openTerrainCards gameState.conductingDeck
-            in
-            { gameState
-                | conductingDeck = shuffledCards
-                , openTerrainCards = []
-                , seed = seed1
-                , timeElapsed = gameState.timeElapsed + 1
-            }
+                                _ ->
+                                    baseState
+
+        Cast ->
+            case gameState.selectedDistance of
+                Just n ->
+                    if gameState.phase == ReadyToCast && n >= 2 && n <= 10 then
+                        gameState
+                            |> resetForCast
+                            |> (\s -> { s | distance = n, selectedDistance = Nothing })
+                            |> transitionPhase Conducting ("выбрана дистанция " ++ String.fromInt n)
+                    else
+                        gameState
+
+                Nothing ->
+                    gameState
 
         SearchNewPlace ->
-            { gameState
-                | discardedTerrainCards = gameState.discardedTerrainCards ++ gameState.openTerrainCards
-                , openTerrainCards = []
-                , timeElapsed = gameState.timeElapsed + List.length gameState.openTerrainCards
-            }
+            case gameState.selectedDistance of
+                Just n ->
+                    if gameState.phase == ReadyToCast && n >= 2 && n <= 10 then
+                        let
+                            ( shuffledDeck, seed1 ) =
+                                shuffleAndPrepend gameState.seed gameState.openTerrainCards gameState.conductingDeck
+                            newDeck =
+                                moveTopToBottom n shuffledDeck
+                        in
+                        { gameState
+                            | conductingDeck = newDeck
+                            , openTerrainCards = []
+                            , seed = seed1
+                            , timeElapsed = gameState.timeElapsed + n
+                            , selectedDistance = Nothing
+                        }
+                    else
+                        gameState
 
-        ShuffledStayHere shuffledCards ->
-            { gameState
-                | conductingDeck = shuffledCards ++ gameState.conductingDeck
-                , openTerrainCards = []
-            }
-
-
--- Начальная колода проводки
-
-initialConductingDeck : List ConductingCard
-initialConductingDeck =
-    [ TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (1, 1) }
-    , TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (2, 1) }
-    , TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (3, 1) }
-    , TerrainCard { tension = { mode = TensionChange, value = -1 }, notch = (1, 1) }
-    , TerrainCard { tension = { mode = TensionChange, value = -1 }, notch = (2, 1) }
-    , TerrainCard { tension = { mode = TensionChange, value = -1 }, notch = (3, 1) }
-    , TerrainCard { tension = { mode = TensionChange, value = 1 }, notch = (1, 1) }
-    , TerrainCard { tension = { mode = TensionChange, value = 1 }, notch = (3, 1)}
-    , TerrainCard { tension = { mode = TensionChange, value = 2 }, notch = (1, 1)}
-    , BaitCard { notches = [ ( 1, 1 ), ( 2, 1 ) ] }
-    ]
-
-
--- Начальная колода приёмов
-
-initialTechniquesDeck : List TechniqueCard
-initialTechniquesDeck =
-    [ Strike 1
-    , Strike 1
-    , Strike 1
-    , Maneuver -1
-    , Maneuver -1
-    , Maneuver -1
-    , LoosenDrag 1
-    , LoosenDrag 1
-    ]
-
+                Nothing ->
+                    gameState
 
 -- Функция перемешивания списка (Fisher-Yates shuffle)
 
@@ -245,9 +335,9 @@ drawCard deck =
 -- Проверить победу при раскрытии карты наживки
 
 checkBaitVictory : Int -> List ConductingCard -> ConductingCard -> Bool
-checkBaitVictory lineTension openTerrainCards baitCard =
-    case ( baitCard, List.reverse openTerrainCards ) of
-        ( BaitCard { notches }, lastCard :: _ ) ->
+checkBaitVictory lineTension openTerrainCards fishOutlineCard =
+    case ( fishOutlineCard, List.reverse openTerrainCards ) of
+        ( FishOutlineCard { notches }, lastCard :: _ ) ->
             case lastCard of
                 TerrainCard { notch } ->
                     -- Проверить совпадение уровня натяжения и засечки карты местности
@@ -258,12 +348,12 @@ checkBaitVictory lineTension openTerrainCards baitCard =
                             List.filter (\( pos, _ ) -> pos == terrainPos) notches
                     in
                         case List.head matchedNotches of
-                            Just (baitPos, baitStr) ->
-                                baitPos == terrainPos && lineTension == (terrainStr + baitStr)
+                            Just (fishOutlinePos, fishOutlineStr) ->
+                                fishOutlinePos == terrainPos && lineTension == (terrainStr + fishOutlineStr)
                             Nothing ->
                                 False
 
-                BaitCard _ ->
+                FishOutlineCard _ ->
                     False
 
         _ ->
@@ -279,27 +369,3 @@ shuffleAndPrepend seed cardsToShuffle deck =
             shuffleList seed cardsToShuffle
     in
     ( shuffled ++ deck, newSeed )
-
-
--- Начальное игровое состояние с перемешанными колодами
-
-initialGameState : Random.Seed -> GameState
-initialGameState seed =
-    let
-        ( shuffledConducting, seed1 ) =
-            shuffleList seed initialConductingDeck
-
-        ( shuffledTechniques, seed2 ) =
-            shuffleList seed1 initialTechniquesDeck
-    in
-        { lineTension = 0
-        , caughtFish = 0
-        , timeElapsed = 0
-        , conductingDeck = shuffledConducting
-        , techniquesDeck = shuffledTechniques
-        , openTerrainCards = []
-        , discardedTerrainCards = []
-        , openTechniqueCards = []
-        , phase = Playing
-        , seed = seed2
-        }

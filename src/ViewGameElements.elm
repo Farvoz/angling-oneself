@@ -4,9 +4,8 @@ import GameModel exposing (ConductingCard(..), Notch, TensionMode(..))
 import Html.Styled exposing (Html, div, text)
 import Html.Styled.Attributes exposing (css)
 import Model exposing (Msg)
-import Styles exposing (cardBaitStyle, cardSlotStyle, cardTerrainStyle, notchStyle)
+import Styles exposing (cardFishOutlineStyle, cardTerrainStyle, notchStyle)
 import Css exposing (..)
-import Char exposing (isUpper)
 
 viewOpenTerrainCards : List ConductingCard -> Html Msg
 viewOpenTerrainCards cards =
@@ -19,19 +18,7 @@ viewOpenTerrainCards cards =
             , flexShrink (num 0)
             ]
         ]
-        (List.range 0 4
-            |> List.map (\i -> viewCardSlot (List.drop i cards |> List.head))
-        )
-
-
-viewCardSlot : Maybe ConductingCard -> Html Msg
-viewCardSlot maybeCard =
-    case maybeCard of
-        Just card ->
-            viewTerrainCard card
-
-        Nothing ->
-            div [ css [ cardSlotStyle ] ] []
+        (List.map viewTerrainCard cards)
 
 
 viewTerrainCard : ConductingCard -> Html Msg
@@ -44,14 +31,21 @@ viewTerrainCard card =
                     TensionSet ->
                         text ("=" ++ (String.fromInt tension.value))
                     TensionChange ->
-                        text (String.fromInt tension.value)
+                        let
+                            sign = 
+                                if tension.value > 0 then
+                                    "+"
+                                else 
+                                    "-"
+                        in
+                        text <| sign ++ (String.fromInt <| abs tension.value)
                 , viewNotch notch False
                 ]
 
-        BaitCard { notches } ->
+        FishOutlineCard { notches } ->
             div
-                [ css [ cardBaitStyle ] ]
-                <| text "⚜️" :: List.map (\notch -> viewNotch notch True) notches 
+                [ css [ cardFishOutlineStyle ] ]
+                <| text "🐟" :: List.map (\notch -> viewNotch notch True) notches 
 
 
 notchPositionStyles : Notch -> Bool -> List Style
@@ -65,13 +59,13 @@ notchPositionStyles (pos, _) isUpper =
     in
         case pos of
             1 ->
-                [ align (rem 0.25), left (px 2) ]
+                [ align (rem 0.1), left (px 2) ]
 
             2 ->
-                [ align (rem 0.25), left (pct 50), transform (translateX (pct -50)) ]
+                [ align (rem 0.1), left (pct 50), transform (translateX (pct -50)) ]
 
             3 ->
-                [ align (rem 0.25), right (px 2) ]
+                [ align (rem 0.1), right (px 2) ]
 
             _ ->
                 []
@@ -94,8 +88,10 @@ viewGameBoard cards =
         [ css
             [ flex (int 1)
             , displayFlex
+            , flexDirection column
             , alignItems center
-            , justifyContent center
+            , justifyContent flexEnd
+            , marginBottom (rem 11)
             ]
         ]
         [ viewOpenTerrainCards cards ]

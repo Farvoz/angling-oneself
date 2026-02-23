@@ -1,89 +1,187 @@
 module ViewHud exposing (..)
 
 import GameModel exposing (..)
-import Html.Styled exposing (Html, div, text)
+import Html.Styled exposing (Html, button, div, text)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
-import Model exposing (Msg)
 import Styles exposing (btnStyle)
 import Css exposing (..)
-import Html.Styled exposing (button)
 import Model exposing (Msg(..))
+import ThemeTokens exposing (surfaceAccent, textOnAccent)
+
+
+phaseLabel : GamePhase -> String
+phaseLabel phase =
+    case phase of
+        ReadyToCast ->
+            "Готов к забросу"
+        Conducting ->
+            "Проводка"
+        Fighting ->
+            "Вываживание"
+
+
+phaseChangeLabel : PhaseChange -> String
+phaseChangeLabel change =
+    phaseLabel change.from
+        ++ " → "
+        ++ phaseLabel change.to
+        ++ ": "
+        ++ change.reason
 
 
 -- Layer 2: HUD components (stats and action buttons)
+viewHudDistanceTension : GameState -> Html Msg
+viewHudDistanceTension gameState =
+    div
+        [ css
+            [ position fixed
+            , bottom (rem 12)
+            , left (rem 7.5)
+            , displayFlex
+            , justifyContent spaceBetween
+            , property "gap" "4rem" 
+            ]
+        ]
+        [ div [] [ text ("📏 " ++ String.fromInt gameState.distance) ]
+        , div [] [ text ("⚡ " ++ String.fromInt gameState.lineTension) ]
+        ]
+
+
 viewHudStats : GameState -> Html Msg
 viewHudStats gameState =
     div
         [ css 
             [ position fixed
             , marginBottom (rem 0.5)
-            , fontSize (rem 0.9) ] 
+            , fontSize (rem 0.9)
+            , displayFlex
+            , flexDirection column
+            , property "gap" "0.25rem"
             ]
-        [ text
-            ("Натяжение: "
-                ++ String.fromInt gameState.lineTension
-                ++ " | Рыб: "
-                ++ String.fromInt gameState.caughtFish
-                ++ " | Время: "
-                ++ String.fromInt gameState.timeElapsed
-                ++ " | Карт в колоде: "
-                ++ String.fromInt (List.length gameState.conductingDeck)
+            ]
+        [ div []
+            [ text
+                ("🌘: "
+                    ++ phaseLabel gameState.phase
+                    ++ " | 🐟: "
+                    ++ String.fromInt gameState.caughtFish
+                    ++ " | ⏳: "
+                    ++ String.fromInt gameState.timeElapsed
+                    ++ " | 🎴: "
+                    ++ String.fromInt (List.length gameState.conductingDeck)
+                )
+            ]
+        , div
+            [ css
+                [ fontSize (rem 0.85)
+                , marginTop (rem 1)
+                , property "max-width" "calc(100vw - 1rem)"
+                ]
+            ]
+            (gameState.phaseChanges
+                |> List.take 1
+                |> List.map (\change -> div [] [ text (phaseChangeLabel change) ])
             )
         ]
 
 
 viewHudActions : GameState -> Html Msg
 viewHudActions gameState =
-    if List.length gameState.openTerrainCards == 5 then
-        div
-            [ css
-                [ position fixed
-                , top (pct 50)
-                , left zero
-                , right zero
-                , padding2 zero (rem 0.75)
-                , transform (translateY (pct -50))
-                , displayFlex
-                , justifyContent spaceBetween
-                , alignItems center
+    case gameState.phase of
+        ReadyToCast ->
+            div
+                [ css
+                    [ position fixed
+                    , left zero
+                    , bottom zero
+                    , width (pct 100)
+                    , padding (rem 0.5)
+                    , displayFlex
+                    , flexDirection column
+                    , alignItems center
+                    , property "gap" "0.5rem"
+                    ]
                 ]
-            ]
-            [ button
-                [ onClick (GameMsg StayHere)
-                , css [ btnStyle ]
-                ]
-                [ text "Остаться здесь" ]
-            , button
-                [ onClick (GameMsg SearchNewPlace)
-                , css [ btnStyle ] 
-                ]
-                [ text "Новое место" ]
-            ]
-
-    else
-        div
-            [ css
-                [ displayFlex
-                , position fixed
-                , left zero
-                , bottom zero
-                , width (pct 100)
-                , height (rem 11)
-                , justifyContent center
-                ]
-            ]
-            [ if List.length gameState.openTerrainCards < 5 && not (List.isEmpty gameState.conductingDeck) then
-                button
-                    [ onClick (GameMsg Pull)
-                    , css 
-                        [ btnStyle 
-                        , width (rem 3)
-                        , height (rem 3)
+                [ div
+                    [ css
+                        [ displayFlex
+                        , flexWrap wrap
+                        , justifyContent center
+                        , property "gap" "0.5rem"
                         ]
                     ]
-                    [ text "🎣" ]
+                    (List.range 2 10
+                        |> List.map
+                            (\n ->
+                                let
+                                    isSelected =
+                                        gameState.selectedDistance == Just n
+                                in
+                                button
+                                    [ onClick (GameMsg (SelectDistance n))
+                                    , css
+                                        [ btnStyle
+                                        , if isSelected then
+                                            batch [ backgroundColor surfaceAccent, color textOnAccent ]
+                                          else
+                                            batch []
+                                        ]
+                                    ]
+                                    [ text (String.fromInt n) ]
+                            )
+                    )
+                , div
+                    [ css
+                        [ displayFlex
+                        , justifyContent center
+                        , property "gap" "0.5rem"
+                        ]
+                    ]
+                    [ button
+                        [ onClick (GameMsg Cast)
+                        , css [ btnStyle ]
+                        ]
+                        [ text "🎣 Забросить" ]
+                    , button
+                        [ onClick (GameMsg SearchNewPlace)
+                        , css [ btnStyle ]
+                        ]
+                        [ text "🔍 Искать" ]
+                    ]
+                ]
 
-              else
-                text ""
+        Conducting ->
+            viewHudActionsConductingOrFighting gameState
+
+        Fighting ->
+            viewHudActionsConductingOrFighting gameState
+
+
+viewHudActionsConductingOrFighting : GameState -> Html Msg
+viewHudActionsConductingOrFighting gameState =
+    div
+        [ css
+            [ displayFlex
+            , position fixed
+            , left zero
+            , bottom zero
+            , width (pct 100)
+            , height (rem 11)
+            , justifyContent center
             ]
+        ]
+        [ if not (List.isEmpty gameState.conductingDeck) then
+            button
+                [ onClick (GameMsg Pull)
+                , css
+                    [ btnStyle
+                    , width (rem 3)
+                    , height (rem 3)
+                    ]
+                ]
+                [ text "🎣" ]
+
+          else
+            text ""
+        ]

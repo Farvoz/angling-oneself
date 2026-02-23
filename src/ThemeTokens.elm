@@ -4,7 +4,7 @@ import Css exposing (..)
 
 -- Design tokens (color scheme)
 -- Palette: water, river, swamp — небо/мелководье/камыш, глубина, берег, приманка
--- surfacePage #eef4f8 | surfaceDefault #d8e6e8 | surfaceMuted #b8c9c4 | surfaceAccent #d4a84b
+-- surfacePage #eef4f8 | surfaceDefault #d8e6e8 | surfaceMuted #b8c9c4 | surfaceAccent #2fa4ff
 -- textPrimary #1e3a3f | textSecondary #2d4a4a | textMuted #5a6e66 | textOnAccent #1e2a1a
 -- borderDefault #2d5a52 | borderMuted #7a9a8e | success #1a6b4a | error #b84a4a | textOnDark #ffffff
 
@@ -22,7 +22,7 @@ surfaceMuted =
 
 surfaceAccent : Color
 surfaceAccent =
-    hex "d4a84b"
+    hex "2fa4ff"
 
 textPrimary : Color
 textPrimary =

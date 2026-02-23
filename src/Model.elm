@@ -1,6 +1,7 @@
 module Model exposing (AppPhase(..), Model, Msg(..), init, update)
 
 import GameModel exposing (GameState)
+import InitialGameModel exposing (..)
 import Random
 
 
@@ -42,7 +43,7 @@ update msg model =
         ShuffledDecks seedValue ->
             let
                 gameState =
-                    GameModel.initialGameState (Random.initialSeed seedValue)
+                    initialGameState (Random.initialSeed seedValue)
             in
             ( { model | gameState = Just gameState }, Cmd.none )
 
