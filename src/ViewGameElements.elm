@@ -92,6 +92,8 @@ viewGameBoard cards =
             , alignItems center
             , justifyContent flexEnd
             , marginBottom (rem 11)
+            , marginTop (rem 3.5)
+            , overflow auto
             ]
         ]
         [ viewOpenTerrainCards cards ]

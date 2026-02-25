@@ -1,11 +1,15 @@
 module GameModel exposing
-    ( ConductingCard(..)
+    ( Bait
+    , ConductingCard(..)
     , GameMsg(..)
     , GamePhase(..)
     , GameState
+    , HookPositionCondition(..)
     , Notch
     , PhaseChange
     , TechniqueCard(..)
+    , TensionChangeCondition(..)
+    , TensionMatchCondition(..)
     , TensionMode(..)
     , checkBaitVictory
     , drawCard
@@ -40,9 +44,32 @@ type ConductingCard
 -- Типы для колоды приёмов
 
 type TechniqueCard
-    = Strike Int
+    = Observe
+    | Strike Int
     | Maneuver Int
     | LoosenDrag Int
+
+
+-- Типы условий наживки
+
+type HookPositionCondition
+    = NotchNotConsidered   -- не учитывается положение засечки
+    | NotchConsidered      -- учитывается положение засечки
+
+type TensionMatchCondition
+    = StrictlyEqual        -- строго равно
+    | AtLeastOrMore Int    -- такое или на Х больше (X — параметр)
+
+type TensionChangeCondition
+    = BreaksOnSuddenPlus2  -- рвётся при резком +2
+    | NoEffect             -- не влияет
+
+type alias Bait =
+    { maxTension : Int
+    , hookPositionCondition : HookPositionCondition
+    , tensionMatchCondition : TensionMatchCondition
+    , tensionChangeCondition : TensionChangeCondition
+    }
 
 
 -- Фазы игры
@@ -101,6 +128,8 @@ type alias GameState =
     , phaseChanges : List PhaseChange
     , seed : Random.Seed
     , selectedDistance : Maybe Int
+    , availableBaits : List Bait
+    , equippedBaitIndex : Maybe Int
     }
 
 
@@ -109,6 +138,7 @@ type alias GameState =
 type GameMsg
     = Pull
     | SelectDistance Int
+    | SelectBait Int
     | Cast
     | SearchNewPlace
 
@@ -157,12 +187,48 @@ moveTopToBottom n deck =
     rest ++ top
 
 
+removeAt : Int -> List a -> List a
+removeAt index list =
+    List.take index list ++ List.drop (index + 1) list
+
+
+getEquippedBait : GameState -> Maybe Bait
+getEquippedBait gameState =
+    gameState.equippedBaitIndex
+        |> Maybe.andThen (\i -> List.head (List.drop i gameState.availableBaits))
+
+
+loseBait : GameState -> GameState
+loseBait gameState =
+    case gameState.equippedBaitIndex of
+        Just i ->
+            if i >= 0 && i < List.length gameState.availableBaits then
+                let
+                    newBaits =
+                        removeAt i gameState.availableBaits
+                in
+                { gameState
+                    | availableBaits = newBaits
+                    , equippedBaitIndex = Nothing
+                }
+            else
+                { gameState | equippedBaitIndex = Nothing }
+        Nothing ->
+            gameState
+
+
 updateGame : GameMsg -> GameState -> GameState
 updateGame msg gameState =
     case msg of
         SelectDistance n ->
             if gameState.phase == ReadyToCast && n >= 2 && n <= 10 then
                 { gameState | selectedDistance = Just n }
+            else
+                gameState
+
+        SelectBait index ->
+            if gameState.phase == ReadyToCast && index >= 0 && index < List.length gameState.availableBaits then
+                { gameState | equippedBaitIndex = Just index }
             else
                 gameState
 
@@ -194,8 +260,24 @@ updateGame msg gameState =
                                     , openTerrainCards = newOpenCards
                                     , lineTension = newTension
                                 }
+                            maybeBait =
+                                getEquippedBait gameState
+
+                            baitLost =
+                                case maybeBait of
+                                    Nothing ->
+                                        False
+                                    Just bait ->
+                                        newTension > bait.maxTension
+                                            || (bait.tensionChangeCondition == BreaksOnSuddenPlus2
+                                                    && (newTension - gameState.lineTension) >= 2
+                                               )
                         in
-                        if newTension <= 0 then
+                        if baitLost then
+                            baseState
+                                |> loseBait
+                                |> toReadyToCast "наживка оборвалась"
+                        else if newTension <= 0 then
                             if gameState.phase == Fighting then
                                 toReadyToCast "натяжение упало до 0" baseState
                             else 
@@ -205,7 +287,7 @@ updateGame msg gameState =
                                 Conducting ->
                                     case card of
                                         FishOutlineCard _ ->
-                                            if checkBaitVictory newTension gameState.openTerrainCards card then
+                                            if checkBaitVictory (getEquippedBait gameState) newTension gameState.openTerrainCards card then
                                                 baseState
                                                     |> (\s -> { s | distance = newDistance })
                                                     |> transitionPhase Fighting "клюнуло на наживку"
@@ -245,7 +327,12 @@ updateGame msg gameState =
         Cast ->
             case gameState.selectedDistance of
                 Just n ->
-                    if gameState.phase == ReadyToCast && n >= 2 && n <= 10 then
+                    if gameState.phase == ReadyToCast
+                        && n >= 2
+                        && n <= 10
+                        && gameState.equippedBaitIndex /= Nothing
+                        && not (List.isEmpty gameState.availableBaits)
+                    then
                         gameState
                             |> resetForCast
                             |> (\s -> { s | distance = n, selectedDistance = Nothing })
@@ -334,30 +421,44 @@ drawCard deck =
 
 -- Проверить победу при раскрытии карты наживки
 
-checkBaitVictory : Int -> List ConductingCard -> ConductingCard -> Bool
-checkBaitVictory lineTension openTerrainCards fishOutlineCard =
-    case ( fishOutlineCard, List.reverse openTerrainCards ) of
-        ( FishOutlineCard { notches }, lastCard :: _ ) ->
-            case lastCard of
-                TerrainCard { notch } ->
-                    -- Проверить совпадение уровня натяжения и засечки карты местности
-                    -- Также проверим, что в карте наживки есть засечка в этой позиции
-                    let
-                        (terrainPos, terrainStr) = notch
-                        matchedNotches =
-                            List.filter (\( pos, _ ) -> pos == terrainPos) notches
-                    in
-                        case List.head matchedNotches of
-                            Just (fishOutlinePos, fishOutlineStr) ->
-                                fishOutlinePos == terrainPos && lineTension == (terrainStr + fishOutlineStr)
-                            Nothing ->
-                                False
-
-                FishOutlineCard _ ->
-                    False
-
-        _ ->
+checkBaitVictory : Maybe Bait -> Int -> List ConductingCard -> ConductingCard -> Bool
+checkBaitVictory maybeBait lineTension openTerrainCards fishOutlineCard =
+    case maybeBait of
+        Nothing ->
             False
+        Just bait ->
+            case ( fishOutlineCard, List.reverse openTerrainCards ) of
+                ( FishOutlineCard { notches }, lastCard :: _ ) ->
+                    case lastCard of
+                        TerrainCard { notch } ->
+                            let
+                                (terrainPos, terrainStr) = notch
+                                tensionMatch requiredValue =
+                                    case bait.tensionMatchCondition of
+                                        StrictlyEqual ->
+                                            lineTension == requiredValue
+                                        AtLeastOrMore x ->
+                                            lineTension >= requiredValue + x
+                            in
+                            case bait.hookPositionCondition of
+                                NotchNotConsidered ->
+                                    List.any
+                                        (\( _, fishStr ) ->
+                                            tensionMatch (terrainStr + fishStr)
+                                        )
+                                        notches
+                                NotchConsidered ->
+                                    case List.filter (\( pos, _ ) -> pos == terrainPos) notches of
+                                        ( _, fishOutlineStr ) :: _ ->
+                                            tensionMatch (terrainStr + fishOutlineStr)
+                                        [] ->
+                                            False
+
+                        FishOutlineCard _ ->
+                            False
+
+                _ ->
+                    False
 
 
 -- Перемешать список и добавить в начало колоды

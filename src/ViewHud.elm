@@ -30,6 +30,11 @@ phaseChangeLabel change =
         ++ change.reason
 
 
+baitShortLabel : Bait -> Int -> String
+baitShortLabel bait index =
+    "Наживка " ++ String.fromInt (index + 1) ++ " (max " ++ String.fromInt bait.maxTension ++ ")"
+
+
 -- Layer 2: HUD components (stats and action buttons)
 viewHudDistanceTension : GameState -> Html Msg
 viewHudDistanceTension gameState =
@@ -70,6 +75,16 @@ viewHudStats gameState =
                     ++ String.fromInt gameState.timeElapsed
                     ++ " | 🎴: "
                     ++ String.fromInt (List.length gameState.conductingDeck)
+                    ++ (case gameState.equippedBaitIndex of
+                            Just i ->
+                                case List.head (List.drop i gameState.availableBaits) of
+                                    Just bait ->
+                                        " | 🎣: " ++ baitShortLabel bait i
+                                    Nothing ->
+                                        ""
+                            Nothing ->
+                                " | 🎣: —"
+                       )
                 )
             ]
         , div
@@ -90,12 +105,17 @@ viewHudActions : GameState -> Html Msg
 viewHudActions gameState =
     case gameState.phase of
         ReadyToCast ->
+            let
+                canCast =
+                    gameState.equippedBaitIndex /= Nothing
+                        && not (List.isEmpty gameState.availableBaits)
+            in
             div
                 [ css
                     [ position fixed
                     , left zero
                     , bottom zero
-                    , width (pct 100)
+                    , property "width" "calc(100% - 1rem)"
                     , padding (rem 0.5)
                     , displayFlex
                     , flexDirection column
@@ -106,31 +126,74 @@ viewHudActions gameState =
                 [ div
                     [ css
                         [ displayFlex
-                        , flexWrap wrap
-                        , justifyContent center
-                        , property "gap" "0.5rem"
+                        , flexDirection row
+                        , justifyContent spaceBetween
+                        , width (pct 100)
+                        , alignItems flexStart
                         ]
                     ]
-                    (List.range 2 10
-                        |> List.map
-                            (\n ->
-                                let
-                                    isSelected =
-                                        gameState.selectedDistance == Just n
-                                in
-                                button
-                                    [ onClick (GameMsg (SelectDistance n))
-                                    , css
-                                        [ btnStyle
-                                        , if isSelected then
-                                            batch [ backgroundColor surfaceAccent, color textOnAccent ]
-                                          else
-                                            batch []
+                    [ div
+                        [ css
+                            [ displayFlex
+                            , flexDirection column
+                            , alignItems flexStart
+                            , property "gap" "0.25rem"
+                            ]
+                        ]
+                        (if List.isEmpty gameState.availableBaits then
+                            [ div [] [ text "Нет наживки" ] ]
+                         else
+                            (List.indexedMap
+                                (\index bait ->
+                                    let
+                                        isSelected =
+                                            gameState.equippedBaitIndex == Just index
+                                    in
+                                    button
+                                        [ onClick (GameMsg (SelectBait index))
+                                        , css
+                                            [ btnStyle
+                                            , if isSelected then
+                                                batch [ backgroundColor surfaceAccent, color textOnAccent ]
+                                              else
+                                                batch []
+                                            ]
                                         ]
-                                    ]
-                                    [ text (String.fromInt n) ]
+                                        [ text (baitShortLabel bait index) ]
+                                )
+                                gameState.availableBaits
                             )
-                    )
+                        )
+                    , div
+                        [ css
+                            [ displayFlex
+                            , flexDirection column
+                            , alignItems flexStart
+                            , property "gap" "0.25rem"
+                            ]
+                        ]
+                        (List.range 2 10
+                            |> List.reverse
+                            |> List.map
+                                (\n ->
+                                    let
+                                        isSelected =
+                                            gameState.selectedDistance == Just n
+                                    in
+                                    button
+                                        [ onClick (GameMsg (SelectDistance n))
+                                        , css
+                                            [ btnStyle
+                                            , if isSelected then
+                                                batch [ backgroundColor surfaceAccent, color textOnAccent ]
+                                              else
+                                                batch []
+                                            ]
+                                        ]
+                                        [ text (String.fromInt n) ]
+                                )
+                        )
+                    ]
                 , div
                     [ css
                         [ displayFlex
@@ -140,7 +203,14 @@ viewHudActions gameState =
                     ]
                     [ button
                         [ onClick (GameMsg Cast)
-                        , css [ btnStyle ]
+                        , css
+                            [ btnStyle
+                            , if not canCast then
+                                opacity (num 0.5)
+                              else
+                                batch []
+                            ]
+                        , Html.Styled.Attributes.disabled (not canCast)
                         ]
                         [ text "🎣 Забросить" ]
                     , button

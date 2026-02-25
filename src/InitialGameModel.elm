@@ -9,7 +9,15 @@ import Random
 
 initialConductingDeck : List ConductingCard
 initialConductingDeck =
-    [ TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (1, 1) }
+    -- Вот это опасное место - сорвётся рыба, если уже Проводка совершается
+    [ TerrainCard { tension = { mode = TensionSet, value = 0 }, notch = (1, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = 0 }, notch = (1, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = 0 }, notch = (2, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = 0 }, notch = (3, 1) }
+    , TerrainCard { tension = { mode = TensionChange, value = 0 }, notch = (1, 0) }
+    , TerrainCard { tension = { mode = TensionChange, value = 0 }, notch = (2, 0) }
+    , TerrainCard { tension = { mode = TensionChange, value = 0 }, notch = (3, 0) }
+    , TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (1, 1) }
     , TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (2, 1) }
     , TerrainCard { tension = { mode = TensionSet, value = 1 }, notch = (3, 1) }
     , TerrainCard { tension = { mode = TensionChange, value = -1 }, notch = (1, 1) }
@@ -19,6 +27,30 @@ initialConductingDeck =
     , TerrainCard { tension = { mode = TensionChange, value = 1 }, notch = (3, 1)}
     , TerrainCard { tension = { mode = TensionChange, value = 2 }, notch = (1, 1)}
     , FishOutlineCard { notches = [ ( 1, 1 ), ( 2, 1 ) ] }
+    , FishOutlineCard { notches = [ ( 1, 1 ), ( 2, 1 ), (3, 1) ] }
+    , FishOutlineCard { notches = [ ( 1, 0 ), ( 2, 0 ), (3, 1) ] }
+    ]
+
+
+-- Начальные наживки
+
+initialBaits : List Bait
+initialBaits =
+    [ { maxTension = 3
+      , hookPositionCondition = NotchConsidered
+      , tensionMatchCondition = StrictlyEqual
+      , tensionChangeCondition = NoEffect
+      }
+    , { maxTension = 5
+      , hookPositionCondition = NotchNotConsidered
+      , tensionMatchCondition = AtLeastOrMore 0
+      , tensionChangeCondition = BreaksOnSuddenPlus2
+      }
+    , { maxTension = 2
+      , hookPositionCondition = NotchConsidered
+      , tensionMatchCondition = AtLeastOrMore 1
+      , tensionChangeCondition = NoEffect
+      }
     ]
 
 
@@ -34,6 +66,9 @@ initialTechniquesDeck =
     , Maneuver -1
     , LoosenDrag 1
     , LoosenDrag 1
+    , Observe
+    , Observe
+    , Observe
     ]
 
 
@@ -61,4 +96,6 @@ initialGameState seed =
         , phaseChanges = []
         , seed = seed2
         , selectedDistance = Nothing
+        , availableBaits = initialBaits
+        , equippedBaitIndex = Just 0
         }
