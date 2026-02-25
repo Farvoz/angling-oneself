@@ -11,8 +11,10 @@ module GameModel exposing
     , TensionChangeCondition(..)
     , TensionMatchCondition(..)
     , TensionMode(..)
+    , applyTechniqueEffect
     , checkBaitVictory
     , drawCard
+    , drawTechniqueCards
     , shuffleAndPrepend
     , shuffleList
     , updateGame
@@ -78,6 +80,7 @@ type GamePhase
     = ReadyToCast   -- Готов к забросу
     | Conducting    -- Проводка
     | Fighting      -- Вываживание
+    | TechniqueChoice GamePhase  -- Выбор приёма, вернуться в указанную фазу
 
 
 type alias PhaseChange =
@@ -124,6 +127,7 @@ type alias GameState =
     , openTerrainCards : List ConductingCard
     , discardedTerrainCards : List ConductingCard
     , openTechniqueCards : List TechniqueCard
+    , offeredTechniqueCards : List TechniqueCard
     , phase : GamePhase
     , phaseChanges : List PhaseChange
     , seed : Random.Seed
@@ -137,6 +141,8 @@ type alias GameState =
 
 type GameMsg
     = Pull
+    | UseTechnique
+    | SelectTechnique Int
     | SelectDistance Int
     | SelectBait Int
     | Cast
@@ -324,6 +330,67 @@ updateGame msg gameState =
                                 _ ->
                                     baseState
 
+        UseTechnique ->
+            case gameState.phase of
+                Conducting ->
+                    if List.isEmpty gameState.techniquesDeck then
+                        gameState
+                    else
+                        let
+                            ( newDeck, drawn ) =
+                                drawTechniqueCards 2 gameState.techniquesDeck
+                        in
+                        { gameState
+                            | techniquesDeck = newDeck
+                            , offeredTechniqueCards = drawn
+                        }
+                            |> transitionPhase (TechniqueChoice Conducting) "приём"
+
+                Fighting ->
+                    if List.isEmpty gameState.techniquesDeck then
+                        gameState
+                    else
+                        let
+                            ( newDeck, drawn ) =
+                                drawTechniqueCards 2 gameState.techniquesDeck
+                        in
+                        { gameState
+                            | techniquesDeck = newDeck
+                            , offeredTechniqueCards = drawn
+                        }
+                            |> transitionPhase (TechniqueChoice Fighting) "приём"
+
+                _ ->
+                    gameState
+
+        SelectTechnique index ->
+            case gameState.phase of
+                TechniqueChoice returnPhase ->
+                    case ( List.head (List.drop index gameState.offeredTechniqueCards), index >= 0, index < List.length gameState.offeredTechniqueCards ) of
+                        ( Just card, True, True ) ->
+                            let
+                                unselected =
+                                    List.indexedMap Tuple.pair gameState.offeredTechniqueCards
+                                        |> List.filter (\( i, _ ) -> i /= index)
+                                        |> List.map Tuple.second
+                                newDeck =
+                                    unselected ++ gameState.techniquesDeck
+                            in
+                            gameState
+                                |> applyTechniqueEffect card
+                                |> (\s ->
+                                        { s
+                                            | offeredTechniqueCards = []
+                                            , techniquesDeck = newDeck
+                                        }
+                                   )
+                                |> transitionPhase returnPhase "приём использован"
+                        _ ->
+                            gameState
+
+                _ ->
+                    gameState
+
         Cast ->
             case gameState.selectedDistance of
                 Just n ->
@@ -417,6 +484,39 @@ drawCard deck =
 
         first :: rest ->
             ( rest, Just first )
+
+
+-- Достать до n карт из колоды приёмов
+
+drawTechniqueCards : Int -> List TechniqueCard -> ( List TechniqueCard, List TechniqueCard )
+drawTechniqueCards n deck =
+    let
+        toTake =
+            min n (List.length deck)
+        drawn =
+            List.take toTake deck
+        rest =
+            List.drop toTake deck
+    in
+    ( rest, drawn )
+
+
+-- Применить эффект приёма к состоянию игры
+
+applyTechniqueEffect : TechniqueCard -> GameState -> GameState
+applyTechniqueEffect card gameState =
+    case card of
+        Strike n ->
+            { gameState | lineTension = max 0 (gameState.lineTension + n) }
+
+        Maneuver n ->
+            { gameState | lineTension = max 0 (gameState.lineTension - n) }
+
+        LoosenDrag n ->
+            { gameState | lineTension = 1 }
+
+        Observe ->
+            gameState
 
 
 -- Проверить победу при раскрытии карты наживки

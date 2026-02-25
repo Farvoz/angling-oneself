@@ -63,6 +63,15 @@ cardFishOutlineStyle =
         , color textOnAccent
         ]
 
+cardTechniqueStyle : Style
+cardTechniqueStyle =
+    batch
+        [ cardStyle
+        , backgroundColor surfaceMuted
+        , color textPrimary
+        , border3 (px 2) solid borderDefault
+        ]
+
 notchStyle : Style
 notchStyle =
     batch

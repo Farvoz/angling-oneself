@@ -1,6 +1,7 @@
 module ViewHud exposing (..)
 
 import GameModel exposing (..)
+import ViewGameElements exposing (viewOfferedTechniqueCards)
 import Html.Styled exposing (Html, button, div, text)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
@@ -19,6 +20,8 @@ phaseLabel phase =
             "Проводка"
         Fighting ->
             "Вываживание"
+        TechniqueChoice _ ->
+            "Выбор приёма"
 
 
 phaseChangeLabel : PhaseChange -> String
@@ -227,18 +230,39 @@ viewHudActions gameState =
         Fighting ->
             viewHudActionsConductingOrFighting gameState
 
+        TechniqueChoice _ ->
+            div
+                [ css
+                    [ position fixed
+                    , left zero
+                    , bottom zero
+                    , width (pct 100)
+                    , padding (rem 0.5)
+                    , displayFlex
+                    , flexDirection column
+                    , alignItems center
+                    , property "gap" "0.5rem"
+                    ]
+                ]
+                [ div [ css [ fontSize (rem 0.9) ] ] [ text "Выберите приём:" ]
+                , viewOfferedTechniqueCards gameState.offeredTechniqueCards
+                ]
+
 
 viewHudActionsConductingOrFighting : GameState -> Html Msg
 viewHudActionsConductingOrFighting gameState =
     div
         [ css
             [ displayFlex
+            , flexDirection column
+            , justifyContent flexStart
+            , alignItems center
             , position fixed
             , left zero
             , bottom zero
             , width (pct 100)
             , height (rem 11)
-            , justifyContent center
+            , property "gap" "0.5rem"
             ]
         ]
         [ if not (List.isEmpty gameState.conductingDeck) then
@@ -251,6 +275,19 @@ viewHudActionsConductingOrFighting gameState =
                     ]
                 ]
                 [ text "🎣" ]
+
+          else
+            text ""
+        , if List.length gameState.techniquesDeck >= 1 then
+            button
+                [ onClick (GameMsg UseTechnique)
+                , css
+                    [ btnStyle
+                    , width (rem 3)
+                    , height (rem 3)
+                    ]
+                ]
+                [ text "🖐🏻" ]
 
           else
             text ""

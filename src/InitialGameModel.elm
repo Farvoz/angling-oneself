@@ -92,6 +92,7 @@ initialGameState seed =
         , openTerrainCards = []
         , discardedTerrainCards = []
         , openTechniqueCards = []
+        , offeredTechniqueCards = []
         , phase = ReadyToCast
         , phaseChanges = []
         , seed = seed2
