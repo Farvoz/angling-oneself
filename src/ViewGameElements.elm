@@ -1,12 +1,13 @@
 module ViewGameElements exposing (..)
 
+import Css exposing (..)
 import GameModel exposing (ConductingCard(..), GameMsg(..), Notch, TechniqueCard(..), TensionMode(..))
 import Html.Styled exposing (Html, button, div, text)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Model exposing (Msg(..))
 import Styles exposing (cardFishOutlineStyle, cardTechniqueStyle, cardTerrainStyle, notchStyle)
-import Css exposing (..)
+
 
 viewOpenTerrainCards : List ConductingCard -> Html Msg
 viewOpenTerrainCards cards =
@@ -30,13 +31,15 @@ viewTerrainCard card =
                 [ css [ cardTerrainStyle ] ]
                 [ case tension.mode of
                     TensionSet ->
-                        text ("=" ++ (String.fromInt tension.value))
+                        text ("=" ++ String.fromInt tension.value)
+
                     TensionChange ->
                         let
-                            sign = 
+                            sign =
                                 if tension.value > 0 then
                                     "+"
-                                else 
+
+                                else
                                     "-"
                         in
                         text <| sign ++ (String.fromInt <| abs tension.value)
@@ -46,7 +49,9 @@ viewTerrainCard card =
         FishOutlineCard { notches } ->
             div
                 [ css [ cardFishOutlineStyle ] ]
-                <| text "🐟" :: List.map (\notch -> viewNotch notch True) notches
+            <|
+                text "🐟"
+                    :: List.map (\notch -> viewNotch notch True) notches
 
 
 techniqueCardLabel : TechniqueCard -> String
@@ -54,10 +59,20 @@ techniqueCardLabel card =
     case card of
         Observe ->
             "🔄 Наблюдение"
+
         Strike n ->
             "⚡ Подсечка " ++ String.fromInt n
+
         Maneuver n ->
-            "⬇️ Манёвр " ++ (if n >= 0 then "+" else "") ++ String.fromInt n
+            "⬇️ Манёвр "
+                ++ (if n >= 0 then
+                        "+"
+
+                    else
+                        ""
+                   )
+                ++ String.fromInt n
+
         LoosenDrag n ->
             "🔓 Фрикцион " ++ String.fromInt n
 
@@ -93,39 +108,44 @@ viewOfferedTechniqueCards cards =
 
 
 notchPositionStyles : Notch -> Bool -> List Style
-notchPositionStyles (pos, _) isUpper =
+notchPositionStyles ( pos, _ ) isUpper =
     let
-        align = 
+        align =
             if isUpper then
                 top
-            else 
+
+            else
                 bottom
     in
-        case pos of
-            1 ->
-                [ align (rem 0.1), left (px 2) ]
+    case pos of
+        1 ->
+            [ align (rem 0.1), left (px 2) ]
 
-            2 ->
-                [ align (rem 0.1), left (pct 50), transform (translateX (pct -50)) ]
+        2 ->
+            [ align (rem 0.1), left (pct 50), transform (translateX (pct -50)) ]
 
-            3 ->
-                [ align (rem 0.1), right (px 2) ]
+        3 ->
+            [ align (rem 0.1), right (px 2) ]
 
-            _ ->
-                []
+        _ ->
+            []
 
 
 viewNotch : Notch -> Bool -> Html Msg
 viewNotch notch isUpper =
     let
-        (_, strength) = notch
+        ( _, strength ) =
+            notch
     in
-        div
-            [ css (notchStyle :: notchPositionStyles notch isUpper) ]
-            [ text (String.fromInt strength) ]
+    div
+        [ css (notchStyle :: notchPositionStyles notch isUpper) ]
+        [ text (String.fromInt strength) ]
+
 
 
 -- Layer 1: Game board (cards only)
+
+
 viewGameBoard : List ConductingCard -> Html Msg
 viewGameBoard terrainCards =
     div
@@ -141,4 +161,3 @@ viewGameBoard terrainCards =
             ]
         ]
         [ viewOpenTerrainCards terrainCards ]
-        

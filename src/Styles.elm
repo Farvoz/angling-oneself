@@ -5,32 +5,47 @@ import Css.Global exposing (global)
 import Html.Styled
 import ThemeTokens exposing (..)
 
+
+
 -- Constants
+
+
 cardSize : Rem
 cardSize =
     rem 3
+
 
 cardWidth : Style
 cardWidth =
     width cardSize
 
+
 cardHeight : Style
 cardHeight =
     height cardSize
 
+
+
 -- Layout
+
+
 flexColumn : Style
 flexColumn =
     batch [ displayFlex, flexDirection column ]
+
 
 flexCenter : Style
 flexCenter =
     batch [ displayFlex, alignItems center, justifyContent center ]
 
+
+
 -- Card styles
+
+
 cardStyle : Style
-cardStyle = 
-    batch 
+cardStyle =
+    batch
         [ cardWidth
         , cardHeight
         , borderRadius borderRadiusDefault
@@ -38,6 +53,7 @@ cardStyle =
         , flexCenter
         , fontWeight bold
         ]
+
 
 cardSlotStyle : Style
 cardSlotStyle =
@@ -49,11 +65,12 @@ cardSlotStyle =
 
 cardTerrainStyle : Style
 cardTerrainStyle =
-    batch 
+    batch
         [ cardStyle
         , backgroundColor surfaceDefault
         , color textPrimary
         ]
+
 
 cardFishOutlineStyle : Style
 cardFishOutlineStyle =
@@ -63,6 +80,7 @@ cardFishOutlineStyle =
         , color textOnAccent
         ]
 
+
 cardTechniqueStyle : Style
 cardTechniqueStyle =
     batch
@@ -71,6 +89,7 @@ cardTechniqueStyle =
         , color textPrimary
         , border3 (px 2) solid borderDefault
         ]
+
 
 notchStyle : Style
 notchStyle =
@@ -84,7 +103,11 @@ notchStyle =
         , color textOnDark
         ]
 
+
+
 -- Button style
+
+
 btnStyle : Style
 btnStyle =
     batch
@@ -97,7 +120,11 @@ btnStyle =
         , borderRadius borderRadiusDefault
         ]
 
+
+
 -- Root layout
+
+
 rootStyle : Style
 rootStyle =
     batch
@@ -113,7 +140,11 @@ rootStyle =
         , color textPrimary
         ]
 
+
+
 -- Global styles (html, body from index.html)
+
+
 globalStyles : Html.Styled.Html msg
 globalStyles =
     global

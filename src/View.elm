@@ -2,16 +2,14 @@ module View exposing (view)
 
 import Css exposing (..)
 import GameModel exposing (GameState)
-import ViewHud exposing (viewHudStats, viewHudActions)
-import ViewGameElements exposing (viewGameBoard)
 import Html.Styled exposing (Html, button, div, text)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
-import Model exposing (Model, Msg(..), AppPhase(..))
-import Styles exposing (btnStyle, globalStyles, rootStyle)
-import Styles exposing (flexColumn)
-import Styles exposing (flexCenter)
-import ViewHud exposing (viewHudDistanceTension)
+import Model exposing (AppPhase(..), Model, Msg(..))
+import Styles exposing (btnStyle, flexCenter, flexColumn, globalStyles, rootStyle)
+import ViewGameElements exposing (viewGameBoard)
+import ViewHud exposing (viewHudActions, viewHudDistanceTension, viewHudStats)
+
 
 view : Model -> Html Msg
 view model =

@@ -1,14 +1,14 @@
 module ViewHud exposing (..)
 
+import Css exposing (..)
 import GameModel exposing (..)
-import ViewGameElements exposing (viewOfferedTechniqueCards)
 import Html.Styled exposing (Html, button, div, text)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
-import Styles exposing (btnStyle)
-import Css exposing (..)
 import Model exposing (Msg(..))
+import Styles exposing (btnStyle)
 import ThemeTokens exposing (surfaceAccent, textOnAccent)
+import ViewGameElements exposing (viewOfferedTechniqueCards)
 
 
 phaseLabel : GamePhase -> String
@@ -16,10 +16,13 @@ phaseLabel phase =
     case phase of
         ReadyToCast ->
             "Готов к забросу"
+
         Conducting ->
             "Проводка"
+
         Fighting ->
             "Вываживание"
+
         TechniqueChoice _ ->
             "Выбор приёма"
 
@@ -38,7 +41,10 @@ baitShortLabel bait index =
     "Наживка " ++ String.fromInt (index + 1) ++ " (max " ++ String.fromInt bait.maxTension ++ ")"
 
 
+
 -- Layer 2: HUD components (stats and action buttons)
+
+
 viewHudDistanceTension : GameState -> Html Msg
 viewHudDistanceTension gameState =
     div
@@ -48,7 +54,7 @@ viewHudDistanceTension gameState =
             , left (rem 7.5)
             , displayFlex
             , justifyContent spaceBetween
-            , property "gap" "4rem" 
+            , property "gap" "4rem"
             ]
         ]
         [ div [] [ text ("📏 " ++ String.fromInt gameState.distance) ]
@@ -59,7 +65,7 @@ viewHudDistanceTension gameState =
 viewHudStats : GameState -> Html Msg
 viewHudStats gameState =
     div
-        [ css 
+        [ css
             [ position fixed
             , marginBottom (rem 0.5)
             , fontSize (rem 0.9)
@@ -67,7 +73,7 @@ viewHudStats gameState =
             , flexDirection column
             , property "gap" "0.25rem"
             ]
-            ]
+        ]
         [ div []
             [ text
                 ("🌘: "
@@ -83,8 +89,10 @@ viewHudStats gameState =
                                 case List.head (List.drop i gameState.availableBaits) of
                                     Just bait ->
                                         " | 🎣: " ++ baitShortLabel bait i
+
                                     Nothing ->
                                         ""
+
                             Nothing ->
                                 " | 🎣: —"
                        )
@@ -110,7 +118,8 @@ viewHudActions gameState =
         ReadyToCast ->
             let
                 canCast =
-                    gameState.equippedBaitIndex /= Nothing
+                    gameState.equippedBaitIndex
+                        /= Nothing
                         && not (List.isEmpty gameState.availableBaits)
             in
             div
@@ -145,8 +154,9 @@ viewHudActions gameState =
                         ]
                         (if List.isEmpty gameState.availableBaits then
                             [ div [] [ text "Нет наживки" ] ]
+
                          else
-                            (List.indexedMap
+                            List.indexedMap
                                 (\index bait ->
                                     let
                                         isSelected =
@@ -158,6 +168,7 @@ viewHudActions gameState =
                                             [ btnStyle
                                             , if isSelected then
                                                 batch [ backgroundColor surfaceAccent, color textOnAccent ]
+
                                               else
                                                 batch []
                                             ]
@@ -165,7 +176,6 @@ viewHudActions gameState =
                                         [ text (baitShortLabel bait index) ]
                                 )
                                 gameState.availableBaits
-                            )
                         )
                     , div
                         [ css
@@ -189,6 +199,7 @@ viewHudActions gameState =
                                             [ btnStyle
                                             , if isSelected then
                                                 batch [ backgroundColor surfaceAccent, color textOnAccent ]
+
                                               else
                                                 batch []
                                             ]
@@ -210,6 +221,7 @@ viewHudActions gameState =
                             [ btnStyle
                             , if not canCast then
                                 opacity (num 0.5)
+
                               else
                                 batch []
                             ]
