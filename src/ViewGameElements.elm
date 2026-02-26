@@ -1,6 +1,7 @@
 module ViewGameElements exposing (..)
 
 import Css exposing (..)
+import Css.Animations exposing (keyframes)
 import GameModel exposing (ConductingCard(..), GameMsg(..), Notch, TechniqueCard(..), TensionMode(..))
 import Html.Styled exposing (Html, button, div, text)
 import Html.Styled.Attributes exposing (css)
@@ -48,10 +49,56 @@ viewTerrainCard card =
 
         FishOutlineCard { notches } ->
             div
-                [ css [ cardFishOutlineStyle ] ]
-            <|
-                text "🐟"
-                    :: List.map (\notch -> viewNotch notch True) notches
+                [ css
+                    ([ cardFishOutlineStyle ]
+                        ++ [ property "position" "relative" ]
+                    )
+                ]
+                ([ div
+                    [ css
+                        [ property "position" "absolute"
+                        , property "top" "-50%"
+                        , property "left" "-50%"
+                        , property "width" "100px"
+                        , property "height" "100px"
+                        , property "pointer-events" "none"
+                        , property "z-index" "1"
+                        , property "border-radius" "50%"
+                        , property "background"
+                            "radial-gradient(circle, rgba(0,180,255,0.5) 10%, rgba(0,180,255,0.25) 50%, rgba(0,180,255,0.0) 100%)"
+                        , property "animation" "wave-spread 0.9s cubic-bezier(.11,.53,.23,1.04) infinite"
+                        , animationName waveSpread
+                        ]
+                    ]
+                    []
+                 , text "🐟"
+                 ]
+                    ++ List.map (\notch -> viewNotch notch True) notches
+                )
+
+
+waveSpread : Css.Animations.Keyframes {}
+waveSpread =
+    keyframes
+        [ ( 0
+          , [ Css.Animations.transform [ translate2 (px -50) (px -50) ]
+            , Css.Animations.transform [ scale 0.7 ]
+            , Css.Animations.opacity (num 0.8)
+            ]
+          )
+        , ( 70
+          , [ Css.Animations.transform [ translate2 (px -50) (px -50) ]
+            , Css.Animations.transform [ scale 1.25 ]
+            , Css.Animations.opacity (num 0.5)
+            ]
+          )
+        , ( 100
+          , [ Css.Animations.transform [ translate2 (px -50) (px -50) ]
+            , Css.Animations.transform [ scale 1.6 ]
+            , Css.Animations.opacity (num 0)
+            ]
+          )
+        ]
 
 
 techniqueCardLabel : TechniqueCard -> String
