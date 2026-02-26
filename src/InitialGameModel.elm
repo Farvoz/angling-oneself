@@ -1,6 +1,8 @@
 module InitialGameModel exposing (..)
 
+import GameInventory.Deck exposing (..)
 import GameModel exposing (..)
+import GameModel.Phases exposing (..)
 import Random
 
 

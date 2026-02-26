@@ -2,25 +2,21 @@ module GameModel exposing
     ( Bait
     , ConductingCard(..)
     , GameMsg(..)
-    , GamePhase(..)
     , GameState
     , HookPositionCondition(..)
     , Notch
-    , PhaseChange
     , TechniqueCard(..)
     , TensionChangeCondition(..)
     , TensionMatchCondition(..)
     , TensionMode(..)
     , applyTechniqueEffect
     , checkBaitVictory
-    , drawCard
-    , drawTechniqueCards
-    , shuffleAndPrepend
-    , shuffleList
     , updateGame
     )
 
 import Array
+import GameInventory.Deck exposing (..)
+import GameModel.Phases exposing (..)
 import Random
 
 
@@ -88,48 +84,6 @@ type alias Bait =
 
 
 
--- Фазы игры
-
-
-type GamePhase
-    = ReadyToCast -- Готов к забросу
-    | Conducting -- Проводка
-    | Fighting -- Вываживание
-    | TechniqueChoice GamePhase -- Выбор приёма, вернуться в указанную фазу
-
-
-type alias PhaseChange =
-    { from : GamePhase
-    , to : GamePhase
-    , reason : String
-    }
-
-
-maxPhaseChanges : Int
-maxPhaseChanges =
-    8
-
-
-transitionPhase : GamePhase -> String -> GameState -> GameState
-transitionPhase toPhase reason gameState =
-    if gameState.phase == toPhase then
-        gameState
-
-    else
-        let
-            entry =
-                { from = gameState.phase
-                , to = toPhase
-                , reason = reason
-                }
-        in
-        { gameState
-            | phase = toPhase
-            , phaseChanges = List.take maxPhaseChanges (entry :: gameState.phaseChanges)
-        }
-
-
-
 -- Игровое состояние
 
 
@@ -183,8 +137,11 @@ resetForCast gameState =
 
 toReadyToCast : String -> GameState -> GameState
 toReadyToCast reason gameState =
-    gameState
-        |> transitionPhase ReadyToCast reason
+    let
+        phasesResult =
+            transitionPhase ( gameState.phase, ReadyToCast ) reason gameState.phaseChanges
+    in
+    { gameState | phase = phasesResult.phase, phaseChanges = phasesResult.phaseChanges }
 
 
 updateTenstion : ConductingCard -> Int -> Int
@@ -200,23 +157,6 @@ updateTenstion card currentTension =
 
         FishOutlineCard _ ->
             currentTension
-
-
-moveTopToBottom : Int -> List a -> List a
-moveTopToBottom n deck =
-    let
-        top =
-            List.take n deck
-
-        rest =
-            List.drop n deck
-    in
-    rest ++ top
-
-
-removeAt : Int -> List a -> List a
-removeAt index list =
-    List.take index list ++ List.drop (index + 1) list
 
 
 getEquippedBait : GameState -> Maybe Bait
@@ -329,9 +269,15 @@ updateGame msg gameState =
                                     case card of
                                         FishOutlineCard _ ->
                                             if checkBaitVictory (getEquippedBait gameState) newTension gameState.openTerrainCards card then
-                                                baseState
-                                                    |> (\s -> { s | distance = newDistance })
-                                                    |> transitionPhase Fighting "клюнуло на наживку"
+                                                let
+                                                    { phase, phaseChanges } =
+                                                        transitionPhase ( baseState.phase, Fighting ) "клюнуло на наживку" baseState.phaseChanges
+                                                in
+                                                { baseState
+                                                    | distance = newDistance
+                                                    , phase = phase
+                                                    , phaseChanges = phaseChanges
+                                                }
 
                                             else if newDistance <= 0 then
                                                 { baseState
@@ -379,12 +325,16 @@ updateGame msg gameState =
                         let
                             ( newDeck, drawn ) =
                                 drawTechniqueCards 2 gameState.techniquesDeck
+
+                            phasesResult =
+                                GameModel.Phases.transitionPhase ( gameState.phase, TechniqueChoice Conducting ) "приём" gameState.phaseChanges
                         in
                         { gameState
                             | techniquesDeck = newDeck
                             , offeredTechniqueCards = drawn
+                            , phase = phasesResult.phase
+                            , phaseChanges = phasesResult.phaseChanges
                         }
-                            |> transitionPhase (TechniqueChoice Conducting) "приём"
 
                 Fighting ->
                     if List.isEmpty gameState.techniquesDeck then
@@ -394,12 +344,16 @@ updateGame msg gameState =
                         let
                             ( newDeck, drawn ) =
                                 drawTechniqueCards 2 gameState.techniquesDeck
+
+                            phasesResult =
+                                GameModel.Phases.transitionPhase ( gameState.phase, TechniqueChoice Conducting ) "приём" gameState.phaseChanges
                         in
                         { gameState
                             | techniquesDeck = newDeck
                             , offeredTechniqueCards = drawn
+                            , phase = phasesResult.phase
+                            , phaseChanges = phasesResult.phaseChanges
                         }
-                            |> transitionPhase (TechniqueChoice Fighting) "приём"
 
                 _ ->
                     gameState
@@ -417,6 +371,9 @@ updateGame msg gameState =
 
                                 newDeck =
                                     unselected ++ gameState.techniquesDeck
+
+                                phaseResult =
+                                    transitionPhase ( gameState.phase, returnPhase ) "приём использован" gameState.phaseChanges
                             in
                             gameState
                                 |> applyTechniqueEffect card
@@ -424,9 +381,10 @@ updateGame msg gameState =
                                         { s
                                             | offeredTechniqueCards = []
                                             , techniquesDeck = newDeck
+                                            , phase = phaseResult.phase
+                                            , phaseChanges = phaseResult.phaseChanges
                                         }
                                    )
-                                |> transitionPhase returnPhase "приём использован"
 
                         _ ->
                             gameState
@@ -438,10 +396,13 @@ updateGame msg gameState =
             case gameState.selectedDistance of
                 Just n ->
                     if gameState.phase == ReadyToCast && n >= 2 && n <= 10 && gameState.equippedBaitIndex /= Nothing && not (List.isEmpty gameState.availableBaits) then
+                        let
+                            phaseResult =
+                                transitionPhase ( gameState.phase, Conducting ) ("выбрана дистанция " ++ String.fromInt n) gameState.phaseChanges
+                        in
                         gameState
                             |> resetForCast
-                            |> (\s -> { s | distance = n, selectedDistance = Nothing })
-                            |> transitionPhase Conducting ("выбрана дистанция " ++ String.fromInt n)
+                            |> (\s -> { s | distance = n, selectedDistance = Nothing, phase = phaseResult.phase, phaseChanges = phaseResult.phaseChanges })
 
                     else
                         gameState
@@ -473,83 +434,6 @@ updateGame msg gameState =
 
                 Nothing ->
                     gameState
-
-
-
--- Функция перемешивания списка (Fisher-Yates shuffle)
-
-
-shuffleList : Random.Seed -> List a -> ( List a, Random.Seed )
-shuffleList seed list =
-    let
-        length =
-            List.length list
-
-        array =
-            Array.fromList list
-    in
-    shuffleArray seed array 0 length
-
-
-shuffleArray : Random.Seed -> Array.Array a -> Int -> Int -> ( List a, Random.Seed )
-shuffleArray seed array currentIndex length =
-    if currentIndex >= length then
-        ( Array.toList array, seed )
-
-    else
-        let
-            ( randomIndex, newSeed ) =
-                Random.step (Random.int currentIndex (length - 1)) seed
-
-            swappedArray =
-                swap array currentIndex randomIndex
-        in
-        shuffleArray newSeed swappedArray (currentIndex + 1) length
-
-
-swap : Array.Array a -> Int -> Int -> Array.Array a
-swap array i j =
-    case ( Array.get i array, Array.get j array ) of
-        ( Just a, Just b ) ->
-            array
-                |> Array.set i b
-                |> Array.set j a
-
-        _ ->
-            array
-
-
-
--- Достать верхнюю карту из колоды
-
-
-drawCard : List ConductingCard -> ( List ConductingCard, Maybe ConductingCard )
-drawCard deck =
-    case deck of
-        [] ->
-            ( [], Nothing )
-
-        first :: rest ->
-            ( rest, Just first )
-
-
-
--- Достать до n карт из колоды приёмов
-
-
-drawTechniqueCards : Int -> List TechniqueCard -> ( List TechniqueCard, List TechniqueCard )
-drawTechniqueCards n deck =
-    let
-        toTake =
-            min n (List.length deck)
-
-        drawn =
-            List.take toTake deck
-
-        rest =
-            List.drop toTake deck
-    in
-    ( rest, drawn )
 
 
 
@@ -620,16 +504,3 @@ checkBaitVictory maybeBait lineTension openTerrainCards fishOutlineCard =
 
                 _ ->
                     False
-
-
-
--- Перемешать список и добавить в начало колоды
-
-
-shuffleAndPrepend : Random.Seed -> List ConductingCard -> List ConductingCard -> ( List ConductingCard, Random.Seed )
-shuffleAndPrepend seed cardsToShuffle deck =
-    let
-        ( shuffled, newSeed ) =
-            shuffleList seed cardsToShuffle
-    in
-    ( shuffled ++ deck, newSeed )

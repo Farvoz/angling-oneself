@@ -2,6 +2,7 @@ module ViewHud exposing (..)
 
 import Css exposing (..)
 import GameModel exposing (..)
+import GameModel.Phases exposing (..)
 import Html.Styled exposing (Html, button, div, text)
 import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
