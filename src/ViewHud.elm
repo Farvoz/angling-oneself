@@ -8,7 +8,7 @@ import Html.Styled.Attributes exposing (css)
 import Html.Styled.Events exposing (onClick)
 import Model exposing (Msg(..))
 import Styles exposing (btnStyle)
-import ThemeTokens exposing (surfaceAccent, textOnAccent)
+import ThemeTokens exposing (surface, textColor)
 import ViewGameElements exposing (viewOfferedTechniqueCards)
 
 
@@ -168,7 +168,7 @@ viewHudActions gameState =
                                         , css
                                             [ btnStyle
                                             , if isSelected then
-                                                batch [ backgroundColor surfaceAccent, color textOnAccent ]
+                                                batch [ backgroundColor surface.accent, color textColor.onAccent ]
 
                                               else
                                                 batch []
@@ -199,7 +199,7 @@ viewHudActions gameState =
                                         , css
                                             [ btnStyle
                                             , if isSelected then
-                                                batch [ backgroundColor surfaceAccent, color textOnAccent ]
+                                                batch [ backgroundColor surface.accent, color textColor.onAccent ]
 
                                               else
                                                 batch []

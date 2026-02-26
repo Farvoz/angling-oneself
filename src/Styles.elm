@@ -59,7 +59,7 @@ cardSlotStyle : Style
 cardSlotStyle =
     batch
         [ cardStyle
-        , backgroundColor surfaceMuted
+        , backgroundColor surface.muted
         ]
 
 
@@ -67,8 +67,8 @@ cardTerrainStyle : Style
 cardTerrainStyle =
     batch
         [ cardStyle
-        , backgroundColor surfaceDefault
-        , color textPrimary
+        , backgroundColor surface.default
+        , color textColor.primary
         ]
 
 
@@ -76,8 +76,8 @@ cardFishOutlineStyle : Style
 cardFishOutlineStyle =
     batch
         [ cardStyle
-        , backgroundColor surfaceAccent
-        , color textOnAccent
+        , backgroundColor surface.accent
+        , color textColor.onAccent
         ]
 
 
@@ -85,9 +85,9 @@ cardTechniqueStyle : Style
 cardTechniqueStyle =
     batch
         [ cardStyle
-        , backgroundColor surfaceMuted
-        , color textPrimary
-        , border3 (px 2) solid borderDefault
+        , backgroundColor surface.muted
+        , color textColor.primary
+        , border3 (px 2) solid ThemeTokens.border.default
         ]
 
 
@@ -97,10 +97,10 @@ notchStyle =
         [ position absolute
         , width (px 10)
         , height (px 10)
-        , backgroundColor borderDefault
+        , backgroundColor ThemeTokens.border.default
         , borderRadius (pct 50)
         , flexCenter
-        , color textOnDark
+        , color textColor.onDark
         ]
 
 
@@ -114,8 +114,8 @@ btnStyle =
         [ minHeight (px 44)
         , padding2 (rem 1) (rem 1)
         , cursor pointer
-        , backgroundColor surfaceDefault
-        , color textPrimary
+        , backgroundColor surface.default
+        , color textColor.primary
         , borderStyle none
         , borderRadius borderRadiusDefault
         ]
@@ -136,8 +136,8 @@ rootStyle =
         , padding (rem 0.75)
         , fontFamilies [ "sans-serif" ]
         , property "box-sizing" "border-box"
-        , backgroundColor surfacePage
-        , color textPrimary
+        , backgroundColor surface.page
+        , color textColor.primary
         ]
 
 
@@ -149,6 +149,6 @@ globalStyles : Html.Styled.Html msg
 globalStyles =
     global
         [ Css.Global.html [ height (pct 100), overflow hidden, padding zero, margin zero ]
-        , Css.Global.body [ height (pct 100), padding zero, margin zero, backgroundColor surfacePage, color textPrimary, property "-webkit-tap-highlight-color" "transparent" ]
+        , Css.Global.body [ height (pct 100), padding zero, margin zero, backgroundColor surface.page, color textColor.primary, property "-webkit-tap-highlight-color" "transparent" ]
         , Css.Global.selector "#elm" [ height (pct 100) ]
         ]

@@ -11,73 +11,33 @@ import Css exposing (..)
 -- borderDefault #2d5a52 | borderMuted #7a9a8e | success #1a6b4a | error #b84a4a | textOnDark #ffffff
 
 
-surfacePage : Color
-surfacePage =
-    hex "eef4f8"
+surface =
+    { page = hex "eef4f8"
+    , default = hex "d8e6e8"
+    , muted = hex "b8c9c4"
+    , accent = hex "2fa4ff"
+    }
 
 
-surfaceDefault : Color
-surfaceDefault =
-    hex "d8e6e8"
+textColor =
+    { primary = hex "1e3a3f"
+    , secondary = hex "2d4a4a"
+    , muted = hex "5a6e66"
+    , onAccent = hex "1e2a1a"
+    , onDark = hex "ffffff"
+    }
 
 
-surfaceMuted : Color
-surfaceMuted =
-    hex "b8c9c4"
+border =
+    { default = hex "2d5a52"
+    , muted = hex "7a9a8e"
+    }
 
 
-surfaceAccent : Color
-surfaceAccent =
-    hex "2fa4ff"
-
-
-textPrimary : Color
-textPrimary =
-    hex "1e3a3f"
-
-
-textSecondary : Color
-textSecondary =
-    hex "2d4a4a"
-
-
-textMuted : Color
-textMuted =
-    hex "5a6e66"
-
-
-textOnAccent : Color
-textOnAccent =
-    hex "1e2a1a"
-
-
-borderDefault : Color
-borderDefault =
-    hex "2d5a52"
-
-
-borderMuted : Color
-borderMuted =
-    hex "7a9a8e"
-
-
-semanticSuccess : Color
-semanticSuccess =
-    hex "1a6b4a"
-
-
-semanticError : Color
-semanticError =
-    hex "b84a4a"
-
-
-
--- For notch on dark border: white for contrast
-
-
-textOnDark : Color
-textOnDark =
-    hex "ffffff"
+semantic =
+    { success = hex "1a6b4a"
+    , error = hex "b84a4a"
+    }
 
 
 
