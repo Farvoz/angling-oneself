@@ -1,6 +1,7 @@
 # Elm
 elm-stuff/
 public/elm.js
+dist
 
 # IDE
 .cursor/
